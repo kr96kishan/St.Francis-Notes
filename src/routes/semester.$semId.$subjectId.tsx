@@ -41,7 +41,7 @@ function SubjectPage() {
         </div>
 
         <div className="space-y-3">
-          {sub.chapters.map((ch, i) => (
+          {sub.chapters.map((ch: typeof sub.chapters[number], i: number) => (
             <button
               key={ch.id}
               onClick={() =>

@@ -40,7 +40,7 @@ function ChapterPage() {
         </div>
 
         <div className="space-y-3">
-          {ch.topics.map((t) => (
+          {ch.topics.map((t: typeof ch.topics[number]) => (
             <button
               key={t.id}
               onClick={() =>

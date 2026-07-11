@@ -9,38 +9,113 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SemesterSemIdRouteImport } from './routes/semester.$semId'
+import { Route as SemesterSemIdSubjectIdRouteImport } from './routes/semester.$semId.$subjectId'
+import { Route as SemesterSemIdSubjectIdChapterIdRouteImport } from './routes/semester.$semId.$subjectId.$chapterId'
+import { Route as SemesterSemIdSubjectIdChapterIdTopicIdRouteImport } from './routes/semester.$semId.$subjectId.$chapterId.$topicId'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SemesterSemIdRoute = SemesterSemIdRouteImport.update({
+  id: '/semester/$semId',
+  path: '/semester/$semId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SemesterSemIdSubjectIdRoute = SemesterSemIdSubjectIdRouteImport.update({
+  id: '/$subjectId',
+  path: '/$subjectId',
+  getParentRoute: () => SemesterSemIdRoute,
+} as any)
+const SemesterSemIdSubjectIdChapterIdRoute =
+  SemesterSemIdSubjectIdChapterIdRouteImport.update({
+    id: '/$chapterId',
+    path: '/$chapterId',
+    getParentRoute: () => SemesterSemIdSubjectIdRoute,
+  } as any)
+const SemesterSemIdSubjectIdChapterIdTopicIdRoute =
+  SemesterSemIdSubjectIdChapterIdTopicIdRouteImport.update({
+    id: '/$topicId',
+    path: '/$topicId',
+    getParentRoute: () => SemesterSemIdSubjectIdChapterIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/semester/$semId': typeof SemesterSemIdRouteWithChildren
+  '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
+  '/semester/$semId/$subjectId/$chapterId': typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
+  '/semester/$semId/$subjectId/$chapterId/$topicId': typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/semester/$semId': typeof SemesterSemIdRouteWithChildren
+  '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
+  '/semester/$semId/$subjectId/$chapterId': typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
+  '/semester/$semId/$subjectId/$chapterId/$topicId': typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/semester/$semId': typeof SemesterSemIdRouteWithChildren
+  '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
+  '/semester/$semId/$subjectId/$chapterId': typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
+  '/semester/$semId/$subjectId/$chapterId/$topicId': typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/semester/$semId'
+    | '/semester/$semId/$subjectId'
+    | '/semester/$semId/$subjectId/$chapterId'
+    | '/semester/$semId/$subjectId/$chapterId/$topicId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/semester/$semId'
+    | '/semester/$semId/$subjectId'
+    | '/semester/$semId/$subjectId/$chapterId'
+    | '/semester/$semId/$subjectId/$chapterId/$topicId'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/semester/$semId'
+    | '/semester/$semId/$subjectId'
+    | '/semester/$semId/$subjectId/$chapterId'
+    | '/semester/$semId/$subjectId/$chapterId/$topicId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  SemesterSemIdRoute: typeof SemesterSemIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +123,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/semester/$semId': {
+      id: '/semester/$semId'
+      path: '/semester/$semId'
+      fullPath: '/semester/$semId'
+      preLoaderRoute: typeof SemesterSemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/semester/$semId/$subjectId': {
+      id: '/semester/$semId/$subjectId'
+      path: '/$subjectId'
+      fullPath: '/semester/$semId/$subjectId'
+      preLoaderRoute: typeof SemesterSemIdSubjectIdRouteImport
+      parentRoute: typeof SemesterSemIdRoute
+    }
+    '/semester/$semId/$subjectId/$chapterId': {
+      id: '/semester/$semId/$subjectId/$chapterId'
+      path: '/$chapterId'
+      fullPath: '/semester/$semId/$subjectId/$chapterId'
+      preLoaderRoute: typeof SemesterSemIdSubjectIdChapterIdRouteImport
+      parentRoute: typeof SemesterSemIdSubjectIdRoute
+    }
+    '/semester/$semId/$subjectId/$chapterId/$topicId': {
+      id: '/semester/$semId/$subjectId/$chapterId/$topicId'
+      path: '/$topicId'
+      fullPath: '/semester/$semId/$subjectId/$chapterId/$topicId'
+      preLoaderRoute: typeof SemesterSemIdSubjectIdChapterIdTopicIdRouteImport
+      parentRoute: typeof SemesterSemIdSubjectIdChapterIdRoute
+    }
   }
 }
 
+interface SemesterSemIdSubjectIdChapterIdRouteChildren {
+  SemesterSemIdSubjectIdChapterIdTopicIdRoute: typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
+}
+
+const SemesterSemIdSubjectIdChapterIdRouteChildren: SemesterSemIdSubjectIdChapterIdRouteChildren =
+  {
+    SemesterSemIdSubjectIdChapterIdTopicIdRoute:
+      SemesterSemIdSubjectIdChapterIdTopicIdRoute,
+  }
+
+const SemesterSemIdSubjectIdChapterIdRouteWithChildren =
+  SemesterSemIdSubjectIdChapterIdRoute._addFileChildren(
+    SemesterSemIdSubjectIdChapterIdRouteChildren,
+  )
+
+interface SemesterSemIdSubjectIdRouteChildren {
+  SemesterSemIdSubjectIdChapterIdRoute: typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
+}
+
+const SemesterSemIdSubjectIdRouteChildren: SemesterSemIdSubjectIdRouteChildren =
+  {
+    SemesterSemIdSubjectIdChapterIdRoute:
+      SemesterSemIdSubjectIdChapterIdRouteWithChildren,
+  }
+
+const SemesterSemIdSubjectIdRouteWithChildren =
+  SemesterSemIdSubjectIdRoute._addFileChildren(
+    SemesterSemIdSubjectIdRouteChildren,
+  )
+
+interface SemesterSemIdRouteChildren {
+  SemesterSemIdSubjectIdRoute: typeof SemesterSemIdSubjectIdRouteWithChildren
+}
+
+const SemesterSemIdRouteChildren: SemesterSemIdRouteChildren = {
+  SemesterSemIdSubjectIdRoute: SemesterSemIdSubjectIdRouteWithChildren,
+}
+
+const SemesterSemIdRouteWithChildren = SemesterSemIdRoute._addFileChildren(
+  SemesterSemIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  SemesterSemIdRoute: SemesterSemIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

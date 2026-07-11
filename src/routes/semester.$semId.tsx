@@ -40,7 +40,7 @@ function SemesterPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {sem.subjects.map((sub) => (
+          {sem.subjects.map((sub: typeof sem.subjects[number]) => (
             <button
               key={sub.id}
               onClick={() =>
