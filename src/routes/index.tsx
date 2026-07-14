@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { ArrowRight, BookMarked, GraduationCap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, BookMarked, Download, GraduationCap, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Protected } from "@/components/protected";
 import { useAuth } from "@/lib/auth-context";
 import { syllabus } from "@/lib/syllabus";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/")({
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { role } = useAuth();
   const navigate = useNavigate();
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (!role && typeof window !== "undefined") {
@@ -22,22 +25,61 @@ function Index() {
     }
   }, [role, navigate]);
 
+  const handleDownloadZip = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch("/api/export/project.zip", { method: "POST" });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "sfdc-notes.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Project ZIP downloaded");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download ZIP");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!role) return null;
 
   return (
     <Protected>
       <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-            <GraduationCap className="h-3.5 w-3.5" />
-            BCA — Bengaluru City University SEP
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+              <GraduationCap className="h-3.5 w-3.5" />
+              BCA — Bengaluru City University SEP
+            </div>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground">
+              Welcome back.
+            </h1>
+            <p className="mt-2 max-w-xl text-base text-muted-foreground">
+              Browse the complete BCA syllabus by semester. Notes, chapters and topics — beautifully organised.
+            </p>
           </div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground">
-            Welcome back.
-          </h1>
-          <p className="mt-2 max-w-xl text-base text-muted-foreground">
-            Browse the complete BCA syllabus by semester. Notes, chapters and topics — beautifully organised.
-          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 gap-2"
+            disabled={isExporting}
+            onClick={handleDownloadZip}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {isExporting ? "Exporting..." : "Download ZIP"}
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
