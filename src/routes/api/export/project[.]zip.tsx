@@ -68,8 +68,9 @@ export const Route = createFileRoute("/api/export/project.zip")({
 
         try {
           await walkDir(root, root, zip);
-          const buffer = await zip.generateAsync({ type: "uint8array" });
-          return new Response(buffer, {
+          const zipBuffer = await zip.generateAsync({ type: "uint8array" });
+          const blob = new Blob([zipBuffer], { type: "application/zip" });
+          return new Response(blob, {
             status: 200,
             headers: {
               "Content-Type": "application/zip",
