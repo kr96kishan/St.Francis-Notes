@@ -31,6 +31,7 @@ const EXCLUDED_FILES: (RegExp | string)[] = [
   /^\.gitignore$/,
   /^\.prettierignore$/,
   /^\.eslintcache$/,
+  ".git",
 ];
 
 function shouldExclude(name: string, isDir: boolean): boolean {
