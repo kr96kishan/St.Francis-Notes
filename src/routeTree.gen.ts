@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SemesterSemIdRouteImport } from './routes/semester.$semId'
 import { Route as SemesterSemIdSubjectIdRouteImport } from './routes/semester.$semId.$subjectId'
+import { Route as ApiExportProjectDotzipRouteImport } from './routes/api/export/project[.]zip'
 import { Route as SemesterSemIdSubjectIdChapterIdRouteImport } from './routes/semester.$semId.$subjectId.$chapterId'
 import { Route as SemesterSemIdSubjectIdChapterIdTopicIdRouteImport } from './routes/semester.$semId.$subjectId.$chapterId.$topicId'
 
@@ -36,6 +37,11 @@ const SemesterSemIdSubjectIdRoute = SemesterSemIdSubjectIdRouteImport.update({
   path: '/$subjectId',
   getParentRoute: () => SemesterSemIdRoute,
 } as any)
+const ApiExportProjectDotzipRoute = ApiExportProjectDotzipRouteImport.update({
+  id: '/api/export/project.zip',
+  path: '/api/export/project.zip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SemesterSemIdSubjectIdChapterIdRoute =
   SemesterSemIdSubjectIdChapterIdRouteImport.update({
     id: '/$chapterId',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/semester/$semId': typeof SemesterSemIdRouteWithChildren
+  '/api/export/project.zip': typeof ApiExportProjectDotzipRoute
   '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
   '/semester/$semId/$subjectId/$chapterId': typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
   '/semester/$semId/$subjectId/$chapterId/$topicId': typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/semester/$semId': typeof SemesterSemIdRouteWithChildren
+  '/api/export/project.zip': typeof ApiExportProjectDotzipRoute
   '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
   '/semester/$semId/$subjectId/$chapterId': typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
   '/semester/$semId/$subjectId/$chapterId/$topicId': typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/semester/$semId': typeof SemesterSemIdRouteWithChildren
+  '/api/export/project.zip': typeof ApiExportProjectDotzipRoute
   '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
   '/semester/$semId/$subjectId/$chapterId': typeof SemesterSemIdSubjectIdChapterIdRouteWithChildren
   '/semester/$semId/$subjectId/$chapterId/$topicId': typeof SemesterSemIdSubjectIdChapterIdTopicIdRoute
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/semester/$semId'
+    | '/api/export/project.zip'
     | '/semester/$semId/$subjectId'
     | '/semester/$semId/$subjectId/$chapterId'
     | '/semester/$semId/$subjectId/$chapterId/$topicId'
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/semester/$semId'
+    | '/api/export/project.zip'
     | '/semester/$semId/$subjectId'
     | '/semester/$semId/$subjectId/$chapterId'
     | '/semester/$semId/$subjectId/$chapterId/$topicId'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/semester/$semId'
+    | '/api/export/project.zip'
     | '/semester/$semId/$subjectId'
     | '/semester/$semId/$subjectId/$chapterId'
     | '/semester/$semId/$subjectId/$chapterId/$topicId'
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   SemesterSemIdRoute: typeof SemesterSemIdRouteWithChildren
+  ApiExportProjectDotzipRoute: typeof ApiExportProjectDotzipRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -136,6 +149,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/semester/$semId/$subjectId'
       preLoaderRoute: typeof SemesterSemIdSubjectIdRouteImport
       parentRoute: typeof SemesterSemIdRoute
+    }
+    '/api/export/project.zip': {
+      id: '/api/export/project.zip'
+      path: '/api/export/project.zip'
+      fullPath: '/api/export/project.zip'
+      preLoaderRoute: typeof ApiExportProjectDotzipRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/semester/$semId/$subjectId/$chapterId': {
       id: '/semester/$semId/$subjectId/$chapterId'
@@ -200,17 +220,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   SemesterSemIdRoute: SemesterSemIdRouteWithChildren,
+  ApiExportProjectDotzipRoute: ApiExportProjectDotzipRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
