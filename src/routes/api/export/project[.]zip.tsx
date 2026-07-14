@@ -11,6 +11,7 @@ const EXCLUDED_DIRS = new Set([
   "dist",
   ".output",
   ".lovable",
+  ".wrangler",
   "tmp",
   "temp",
   "coverage",
