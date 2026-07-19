@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { ArrowRight, BookOpen } from "lucide-react";
 
 import { Protected } from "@/components/protected";
@@ -23,6 +23,12 @@ export const Route = createFileRoute("/semester/$semId")({
 function SemesterPage() {
   const { sem } = Route.useLoaderData();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isExact = pathname === `/semester/${sem.id}`;
+
+  if (!isExact) {
+    return <Outlet />;
+  }
 
   return (
     <Protected>

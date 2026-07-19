@@ -1,10 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, LayoutDashboard, LogOut, ShieldCheck, User } from "lucide-react";
-import type { ReactNode } from "react";
+import { BookOpen, LayoutDashboard, LogOut, ShieldCheck, User, Upload, Trash2, Sun, Moon } from "lucide-react";
+import { type ReactNode, useState, useEffect } from "react";
 
 import { CollegeLogo } from "./college-logo";
 import { useAuth } from "@/lib/auth-context";
 import { syllabus } from "@/lib/syllabus";
+import { UploadModal } from "@/components/upload-modal";
+import { DeleteModal } from "./delete-modal";
 import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
@@ -102,55 +104,108 @@ function AppSidebar() {
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();
   const crumbs = useBreadcrumbs();
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initial = saved || (systemDark ? "dark" : "light");
+    setTheme(initial);
+    if (initial === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar />
-        <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card/80 px-4 backdrop-blur md:px-6">
-            <SidebarTrigger />
-            <Breadcrumb className="flex-1">
-              <BreadcrumbList>
-                {crumbs.map((c, i) => {
-                  const isLast = i === crumbs.length - 1;
-                  return (
-                    <div key={i} className="flex items-center gap-1.5">
-                      {i > 0 && <BreadcrumbSeparator />}
-                      <BreadcrumbItem>
-                        {isLast || !c.to ? (
-                          <BreadcrumbPage className="max-w-[220px] truncate">
-                            {c.label}
-                          </BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink asChild>
-                            <Link to={c.to} className="max-w-[180px] truncate">
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        {/* Brand gradient accent line */}
+        <div className="brand-gradient-line h-[2px] w-full shrink-0" />
+
+        <div className="flex flex-1">
+          <AppSidebar />
+          <div className="flex flex-1 flex-col">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-3 backdrop-blur sm:h-16 sm:gap-4 sm:px-6">
+              <SidebarTrigger />
+              <Breadcrumb className="flex-1 overflow-hidden">
+                <BreadcrumbList className="flex-nowrap">
+                  {crumbs.map((c, i) => {
+                    const isLast = i === crumbs.length - 1;
+                    return (
+                      <div key={i} className="flex items-center gap-1.5">
+                        {i > 0 && <BreadcrumbSeparator />}
+                        <BreadcrumbItem>
+                          {isLast || !c.to ? (
+                            <BreadcrumbPage className="max-w-[140px] truncate sm:max-w-[220px]">
                               {c.label}
-                            </Link>
-                          </BreadcrumbLink>
-                        )}
-                      </BreadcrumbItem>
-                    </div>
-                  );
-                })}
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground sm:flex">
-                {role === "admin" ? (
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                ) : (
-                  <User className="h-3.5 w-3.5" />
+                            </BreadcrumbPage>
+                          ) : (
+                            <BreadcrumbLink asChild>
+                              <Link to={c.to} className="max-w-[120px] truncate sm:max-w-[180px]">
+                                {c.label}
+                              </Link>
+                            </BreadcrumbLink>
+                          )}
+                        </BreadcrumbItem>
+                      </div>
+                    );
+                  })}
+                </BreadcrumbList>
+              </Breadcrumb>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="hidden items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground sm:flex">
+                  {role === "admin" ? (
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  ) : (
+                    <User className="h-3.5 w-3.5" />
+                  )}
+                  <span className="capitalize">{role}</span>
+                </div>
+                
+                {role === "admin" && (
+                  <>
+                    <Button variant="default" size="sm" onClick={() => setUploadOpen(true)} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                      <Upload className="h-4 w-4" />
+                      <span className="hidden sm:inline">Upload Material</span>
+                    </Button>
+                    <UploadModal open={uploadOpen} onOpenChange={setUploadOpen} />
+
+                    <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5 hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Delete Content</span>
+                    </Button>
+                    <DeleteModal open={deleteOpen} onOpenChange={setDeleteOpen} />
+                  </>
                 )}
-                <span className="capitalize">{role}</span>
+
+                <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground">
+                  {theme === "light" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+                </Button>
+                
+                <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign out</span>
-              </Button>
-            </div>
-          </header>
-          <main className="flex-1 px-4 py-8 md:px-8 lg:px-10">{children}</main>
+            </header>
+            <main className="flex-1 px-4 py-6 sm:py-8 md:px-8 lg:px-10">{children}</main>
+          </div>
         </div>
       </div>
     </SidebarProvider>

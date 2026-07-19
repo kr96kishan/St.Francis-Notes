@@ -1,15 +1,19 @@
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { ChevronRight, FileText } from "lucide-react";
 
 import { Protected } from "@/components/protected";
 import { Card } from "@/components/ui/card";
 import { findChapter, findSemester, findSubject } from "@/lib/syllabus";
+import { buildChapterKey, useCustomTopics, useMaterialCount } from "@/lib/content-store";
 
 export const Route = createFileRoute("/semester/$semId/$subjectId/$chapterId")({
   loader: ({ params }) => {
     const sem = findSemester(params.semId);
     const sub = findSubject(params.semId, params.subjectId);
-    const ch = findChapter(params.semId, params.subjectId, params.chapterId);
+    let ch = findChapter(params.semId, params.subjectId, params.chapterId);
+    if (params.chapterId === "general") {
+      ch = { id: "general", title: "General Resources", topics: [] };
+    }
     if (!sem || !sub || !ch) throw notFound();
     return { sem, sub, ch };
   },
@@ -25,6 +29,16 @@ export const Route = createFileRoute("/semester/$semId/$subjectId/$chapterId")({
 function ChapterPage() {
   const { sem, sub, ch } = Route.useLoaderData();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isExact = pathname === `/semester/${sem.id}/${sub.id}/${ch.id}`;
+
+  if (!isExact) {
+    return <Outlet />;
+  }
+  
+  const chapterKey = buildChapterKey(sem.id, sub.id, ch.id);
+  const customTopics = useCustomTopics(chapterKey);
+  const allTopics = [...ch.topics, ...customTopics];
 
   return (
     <Protected>
@@ -40,7 +54,7 @@ function ChapterPage() {
         </div>
 
         <div className="space-y-3">
-          {ch.topics.map((t: typeof ch.topics[number]) => (
+          {allTopics.map((t) => (
             <button
               key={t.id}
               onClick={() =>
