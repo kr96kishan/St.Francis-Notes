@@ -45,6 +45,11 @@ const rawSyllabus = {
       "units": [
         { "name": "8085 Microprocessor Programs", "topics": ["1. Swap two 8-bit numbers", "2. Find largest and smallest of two numbers", "3. Find if 8-bit number is positive, negative or zero", "4. Check whether 4th bit of a number is 0 or 1", "5. Calculate sum of first ten natural numbers", "6. Find sum of digits of an 8-bit number", "7. Find the reverse of an 8-bit number", "8. Check if 1-byte number is a palindrome", "9. Check whether a number is ODD or EVEN", "10. Count number of ones in an 8-bit number", "11. Addition & Subtraction of two 8-bit HEX numbers", "12. Addition of two 16-bit numbers", "13. Subtraction of two 16-bit numbers", "14. Swapping of two 16-bit numbers", "15. Implement 2 out of 5 codes", "16. Generate Fibonacci series", "17. Find first ten terms of odd and even numbers", "18. 4-Digit BCD addition", "19. Multiplication of 2-digit BCD numbers", "20. Division of two 8-bit numbers"] }
       ]
+    },
+    {
+      "subject": "OAT Lab",
+      "isLab": true,
+      "units": []
     }
   ],
   "Semester 2": [

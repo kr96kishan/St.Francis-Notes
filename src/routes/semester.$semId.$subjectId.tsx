@@ -282,20 +282,29 @@ function SubjectPage() {
         ) : (
           <div className="flex flex-col items-center justify-center p-16 border border-dashed border-border rounded-xl text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-muted-foreground mb-4">
-              <Search className="h-6 w-6" />
+              {searchQuery ? <Search className="h-6 w-6" /> : <FolderOpen className="h-6 w-6" />}
             </div>
-            <h3 className="text-lg font-semibold text-foreground">No search matches found</h3>
+            <h3 className="text-lg font-semibold text-foreground">
+              {searchQuery ? "No search matches found" : "This subject is currently empty"}
+            </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-md">
-              We couldn't find any units, custom topics, or PYQ papers matching "{searchQuery}". Try using different terms.
+              {searchQuery 
+                ? `We couldn't find any units, custom topics, or PYQ papers matching "${searchQuery}". Try using different terms.`
+                : role === "admin"
+                  ? "Click the 'Upload Material' button in the header or add custom topics/PYQs to start building this course's syllabus resources."
+                  : "Check back later! The administrator hasn't uploaded any syllabus units or notes for this subject yet."
+              }
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSearchQuery("")}
-              className="mt-4 text-xs"
-            >
-              Clear Search Query
-            </Button>
+            {searchQuery && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchQuery("")}
+                className="mt-4 text-xs"
+              >
+                Clear Search Query
+              </Button>
+            )}
           </div>
         )}
 
