@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, LayoutDashboard, LogOut, ShieldCheck, User, Upload, Trash2, Sun, Moon } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, ShieldCheck, User, Upload, Trash2, Sun, Moon, MoreVertical } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
 
 import { CollegeLogo } from "./college-logo";
@@ -29,6 +29,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Crumb = { label: string; to?: string };
 
@@ -168,8 +176,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   })}
                 </BreadcrumbList>
               </Breadcrumb>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground sm:flex">
+              {/* Desktop Header Actions */}
+              <div className="hidden sm:flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
                   {role === "admin" ? (
                     <ShieldCheck className="h-3.5 w-3.5" />
                   ) : (
@@ -182,13 +191,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <>
                     <Button variant="default" size="sm" onClick={() => setUploadOpen(true)} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                       <Upload className="h-4 w-4" />
-                      <span className="hidden sm:inline">Upload Material</span>
+                      <span>Upload Material</span>
                     </Button>
                     <UploadModal open={uploadOpen} onOpenChange={setUploadOpen} />
 
                     <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="gap-2 text-destructive border-destructive/20 hover:bg-destructive/5 hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Delete Content</span>
+                      <span>Delete Content</span>
                     </Button>
                     <DeleteModal open={deleteOpen} onOpenChange={setDeleteOpen} />
                   </>
@@ -200,8 +209,53 @@ export function AppShell({ children }: { children: ReactNode }) {
                 
                 <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
                   <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  <span>Sign out</span>
                 </Button>
+              </div>
+
+              {/* Mobile Header Actions */}
+              <div className="flex sm:hidden items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground">
+                  {theme === "light" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground">
+                      <MoreVertical className="h-[18px] w-[18px]" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel className="text-xs font-semibold capitalize text-muted-foreground">
+                      {name ? `${name} (${role})` : role}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {role === "admin" && (
+                      <>
+                        <DropdownMenuItem onClick={() => setUploadOpen(true)} className="gap-2 cursor-pointer">
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span>Upload Material</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="gap-2 text-destructive focus:text-destructive cursor-pointer">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <span>Delete Content</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={logout} className="gap-2 cursor-pointer">
+                      <LogOut className="h-4 w-4 text-muted-foreground" />
+                      <span>Sign out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {role === "admin" && (
+                  <>
+                    <UploadModal open={uploadOpen} onOpenChange={setUploadOpen} />
+                    <DeleteModal open={deleteOpen} onOpenChange={setDeleteOpen} />
+                  </>
+                )}
               </div>
             </header>
             <main className="flex-1 px-4 py-6 sm:py-8 md:px-8 lg:px-10">{children}</main>
