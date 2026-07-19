@@ -14,9 +14,6 @@ export default defineConfig({
     server: { entry: "server" },
   },
   nitro: {
-    preset: process.env.NITRO_PRESET || "cloudflare-pages",
-    cloudflare: {
-      deployConfig: false
-    }
+    preset: process.env.NITRO_PRESET || "cloudflare-pages"
   }
 });
