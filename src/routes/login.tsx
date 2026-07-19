@@ -5,7 +5,6 @@ import { GraduationCap, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CollegeLogo } from "@/components/college-logo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -38,14 +37,21 @@ function LoginPage() {
 
       <Card className="animate-fade-in-up relative z-10 w-full max-w-md border-border p-10 shadow-xl backdrop-blur-sm">
         <div className="flex flex-col items-center text-center">
-          <div className="animate-pulse-glow rounded-2xl p-1">
-            <CollegeLogo />
+          <div className="animate-pulse-glow flex h-28 w-28 items-center justify-center rounded-full bg-card p-2 shadow-inner border border-border">
+            <img 
+              src="/college-logo.png" 
+              alt="St. Francis College Logo" 
+              className="h-full w-full object-contain"
+            />
           </div>
-          <h1 className="mt-8 text-2xl font-semibold tracking-tight text-foreground">
-            Notes Portal
+          <h1 className="mt-6 text-2xl font-bold tracking-tight text-foreground">
+            St.Francis College
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to access the BCA syllabus and academic materials.
+          <p className="text-sm font-medium text-primary mt-1">
+            Notes Portal
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground max-w-[280px]">
+            Sign in to access the BCA syllabus, academic notes, and resources.
           </p>
         </div>
 
