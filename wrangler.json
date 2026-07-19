@@ -1,0 +1,12 @@
+{
+  "name": "sfcn",
+  "main": "dist/_worker.js/index.js",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS"
+  }
+}
