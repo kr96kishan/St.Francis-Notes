@@ -12,7 +12,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { role } = useAuth();
+  const { role, name } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +34,7 @@ function Index() {
               BCA — Bengaluru City University SEP
             </div>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground">
-              Welcome back.
+              Welcome back, {name || "Student"}.
             </h1>
             <p className="mt-2 max-w-xl text-base text-muted-foreground">
               Browse the complete BCA syllabus by semester. Notes, chapters and topics — beautifully organised.

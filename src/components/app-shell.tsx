@@ -102,7 +102,7 @@ function AppSidebar() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { role, logout } = useAuth();
+  const { role, name, logout } = useAuth();
   const crumbs = useBreadcrumbs();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -175,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   ) : (
                     <User className="h-3.5 w-3.5" />
                   )}
-                  <span className="capitalize">{role}</span>
+                  <span className="capitalize">{name ? `${name} (${role})` : role}</span>
                 </div>
                 
                 {role === "admin" && (
