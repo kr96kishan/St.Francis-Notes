@@ -121,6 +121,54 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    // Disable right-click context menu
+    const disableContextMenu = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("contextmenu", disableContextMenu);
+
+    // Disable developer shortcuts (F12, Inspect Element shortcuts, View Source)
+    const disableKeys = (e: KeyboardEvent) => {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["I", "J", "C", "K"].includes(e.key.toUpperCase())) ||
+        (e.ctrlKey && ["U", "S", "H"].includes(e.key.toUpperCase()))
+      ) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("keydown", disableKeys);
+
+    // Disable copying text unless it is an input/textarea
+    const disableCopy = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("copy", disableCopy);
+
+    // Anti-debugging (debugger loop) - runs only in production environments
+    let intervalId: any;
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      intervalId = setInterval(() => {
+        (function() {
+          debugger;
+        }());
+      }, 500);
+    }
+
+    return () => {
+      document.removeEventListener("contextmenu", disableContextMenu);
+      document.removeEventListener("keydown", disableKeys);
+      document.removeEventListener("copy", disableCopy);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

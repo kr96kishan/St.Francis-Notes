@@ -124,7 +124,7 @@ function LoginPage() {
               <Input
                 id="uucms"
                 type="text"
-                placeholder="e.g. U18IW25S0052"
+                placeholder="Enter UUCMS Number"
                 value={uucms}
                 onChange={(e) => setUucms(e.target.value)}
                 className="pl-9"
@@ -140,7 +140,7 @@ function LoginPage() {
               <Input
                 id="dob"
                 type="text"
-                placeholder="DD-MM-YYYY (e.g. 01-10-2007)"
+                placeholder="DD-MM-YYYY"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
                 className="pl-9"
