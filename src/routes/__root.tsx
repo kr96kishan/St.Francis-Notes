@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "St. Francis Degree College — Notes" },
+      { title: "St.Francis College — Notes" },
       {
         name: "description",
         content:
-          "Premium academic notes portal for St. Francis Degree College — Bengaluru City University SEP BCA syllabus.",
+          "Premium academic notes portal for St.Francis College — Bengaluru City University SEP BCA syllabus.",
       },
-      { property: "og:title", content: "St. Francis Degree College — Notes" },
+      { property: "og:title", content: "St.Francis College — Notes" },
       {
         property: "og:description",
         content: "Premium academic notes portal for BCA students and faculty.",

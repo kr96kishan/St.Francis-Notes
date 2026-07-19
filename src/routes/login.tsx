@@ -82,7 +82,7 @@ function LoginPage() {
 
         <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <GraduationCap className="h-3.5 w-3.5" />
-          <span>© {new Date().getFullYear()} St. Francis Degree College</span>
+          <span>© {new Date().getFullYear()} St.Francis College</span>
         </div>
       </Card>
     </div>

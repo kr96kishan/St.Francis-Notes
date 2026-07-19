@@ -10,9 +10,9 @@ export function CollegeLogo({ className = "" }: { className?: string }) {
         />
       </div>
       <div className="leading-tight">
-        <div className="text-base font-semibold tracking-tight text-foreground">St. Francis</div>
-        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          Degree College
+        <div className="text-sm font-semibold tracking-tight text-foreground">St.Francis College</div>
+        <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          Notes Portal
         </div>
       </div>
     </div>
