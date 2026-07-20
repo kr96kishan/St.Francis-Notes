@@ -341,52 +341,7 @@ function TopicPage() {
             </Card>
           )}
 
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="space-y-4 p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-2xl bg-primary p-2 text-primary-foreground">
-                  <Bot className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">Notebook-style AI assistant</div>
-                  <div className="text-sm text-muted-foreground">
-                    Ask questions, request summaries, or compare ideas from the notes and videos in this topic.
-                  </div>
-                </div>
-              </div>
 
-              <div className="rounded-2xl border border-border bg-background/80 p-3">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Active source: {activeMaterial ? activeMaterial.name : "All uploaded materials"}
-                </div>
-                <div className="flex max-h-56 flex-col gap-3 overflow-auto pr-2">
-                  {assistantMessages.map((message) => (
-                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-6 ${message.role === "user" ? "bg-primary text-primary-foreground" : "border border-border bg-card text-card-foreground"}`}>
-                        {message.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <form onSubmit={handleAssistantAsk} className="flex flex-col gap-2 sm:flex-row">
-                <textarea
-                  className="min-h-[90px] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary"
-                  value={assistantInput}
-                  onChange={(event) => setAssistantInput(event.target.value)}
-                  placeholder="Summarize this material, explain it simply, or answer a question..."
-                />
-                <button
-                  type="submit"
-                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-                >
-                  {assistantLoading ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizonal className="h-4 w-4" />}
-                  {assistantLoading ? "Thinking..." : "Ask AI"}
-                </button>
-              </form>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Dynamic File Viewer Modal */}
