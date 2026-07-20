@@ -6,7 +6,14 @@ import {
   type FormEvent,
   type ChangeEvent,
 } from "react";
-import { askGemini, type ChatMessage, type AttachedMedia } from "@/lib/gemini";
+import {
+  askGemini,
+  isApiKeyConfigured,
+  MissingApiKeyError,
+  InvalidApiKeyError,
+  type ChatMessage,
+  type AttachedMedia,
+} from "@/lib/gemini";
 import {
   Bot,
   SendHorizonal,
@@ -182,13 +189,57 @@ function MessageBubble({ msg }: { msg: UIMessage }) {
   );
 }
 
+// ─── Setup banner (shown when API key is missing) ─────────────────────────────
+function SetupBanner() {
+  return (
+    <div className="mx-4 mb-3 flex flex-col gap-3 rounded-2xl border border-amber-300/40 bg-amber-50/80 p-4 text-sm dark:bg-amber-950/30 dark:border-amber-500/30">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 text-lg">🔑</span>
+        <div className="flex-1">
+          <p className="font-semibold text-amber-800 dark:text-amber-300">AI not configured yet</p>
+          <p className="mt-1 text-amber-700 dark:text-amber-400">
+            Francis AI needs a Gemini API key to work. Here's how to set it up:
+          </p>
+          <ol className="mt-2 list-decimal space-y-1 pl-4 text-amber-700 dark:text-amber-400">
+            <li>
+              Get a free key at{" "}
+              <a
+                href="https://aistudio.google.com/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-medium hover:text-amber-900"
+              >
+                aistudio.google.com/apikey
+              </a>
+            </li>
+            <li>
+              Create a <code className="rounded bg-amber-100 px-1 font-mono text-xs dark:bg-amber-900">.env.local</code> file in the project root
+            </li>
+            <li>
+              Add: <code className="rounded bg-amber-100 px-1 font-mono text-xs dark:bg-amber-900">VITE_GEMINI_API_KEY=your_key_here</code>
+            </li>
+            <li>Restart the dev server — it'll work immediately!</li>
+          </ol>
+          <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
+            For production (Cloudflare / Netlify): add <code className="font-mono">VITE_GEMINI_API_KEY</code> in your hosting dashboard's Environment Variables.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Chat Component ──────────────────────────────────────────────────────
 function Chat() {
+  const apiKeyReady = isApiKeyConfigured();
+
   const [uiMessages, setUiMessages] = useState<UIMessage[]>([
     {
       id: 1,
       role: "assistant",
-      text: "Hey there! 👋 I'm **Francis AI**, your personal study companion for St. Francis College.\n\nI know your **entire BCA syllabus**, can read your notes from photos, summarise videos, generate MCQs, and help you prep for exams. What would you like to explore today?",
+      text: apiKeyReady
+        ? "Hey there! 👋 I'm **Francis AI**, your personal study companion for St. Francis College.\n\nI know your **entire BCA syllabus**, can read your notes from photos, summarise videos, generate MCQs, and help you prep for exams. What would you like to explore today?"
+        : "Hi! I'm **Francis AI** — but I need a Gemini API key before I can help you. Check the setup guide above ☝️",
     },
   ]);
 
@@ -273,10 +324,25 @@ function Chat() {
         { role: "model", parts: [{ text: reply }] },
       ]);
     } catch (err: unknown) {
-      const errText =
-        err instanceof Error && err.message.includes("API_KEY")
-          ? "⚠️ The Gemini API key is missing or invalid. Please ask an admin to configure `VITE_GEMINI_API_KEY`."
-          : "Oops, something went wrong on my end. Give it another shot! 🔄";
+      // Map typed credential errors to friendly, actionable messages
+      let errText: string;
+      if (err instanceof MissingApiKeyError) {
+        errText =
+          "🔑 **API key not configured.** Please add your Gemini API key to `.env.local` as `VITE_GEMINI_API_KEY=your_key_here`, then restart the dev server. See the setup guide at the top of this page.";
+      } else if (err instanceof InvalidApiKeyError) {
+        errText =
+          "❌ **API key rejected.** Your Gemini key was declined — double-check it at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and make sure the Generative Language API is enabled.";
+      } else if (
+        err instanceof Error &&
+        /fetch|network|failed to fetch/i.test(err.message)
+      ) {
+        errText =
+          "📡 **Network error.** Couldn't reach the Gemini API — check your internet connection and try again.";
+      } else {
+        errText =
+          "😓 Something went wrong on my end. Please try again in a moment!";
+        console.error("[Francis AI] Unexpected error:", err);
+      }
 
       setUiMessages((prev) =>
         prev.map((m) =>
@@ -342,7 +408,11 @@ function Chat() {
             <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 p-2.5 text-white shadow-md">
               <Bot className="h-5 w-5" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-green-500" />
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${
+                apiKeyReady ? "bg-green-500" : "bg-amber-400"
+              }`}
+            />
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">Francis AI</h1>
@@ -358,6 +428,9 @@ function Chat() {
           Clear
         </button>
       </div>
+
+      {/* ── Setup banner (only shown when key is missing) ──────────── */}
+      {!apiKeyReady && <SetupBanner />}
 
       {/* ── Messages ───────────────────────────────────────────── */}
       <div
@@ -383,8 +456,8 @@ function Chat() {
         )}
       </div>
 
-      {/* ── Quick actions (shown only when history is empty) ───── */}
-      {uiMessages.length <= 1 && (
+      {/* ── Quick actions (shown only when history is empty and key is ready) */}
+      {uiMessages.length <= 1 && apiKeyReady && (
         <div className="grid grid-cols-2 gap-2 px-4 pb-2 sm:grid-cols-4 sm:px-6">
           {QUICK_ACTIONS.map((action) => (
             <button
