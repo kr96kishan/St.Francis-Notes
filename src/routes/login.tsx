@@ -34,37 +34,33 @@ function LoginPage() {
     if (hydrated && role) navigate({ to: "/" });
   }, [hydrated, role, navigate]);
 
+  const handleQuickLogin = (role: Role, name: string) => {
+    toast.success(`Welcome back, ${name}!`);
+    login(role, name);
+    navigate({ to: "/" });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!uucms.trim()) {
-      toast.error("Please enter your UUCMS number.");
-      return;
-    }
-    if (!dob.trim()) {
-      toast.error("Please enter your Date of Birth.");
+      toast.error("Please enter your UUCMS number or Name.");
       return;
     }
 
     setLoading(true);
 
-    // Normalize input UUCMS No. (e.g. uppercase, trim)
     const cleanUucms = uucms.trim().toUpperCase();
-    
-    // Normalize input DOB (replace slashes/dots with hyphens, e.g., 01/10/2007 -> 01-10-2007)
     const cleanDob = dob.trim().replace(/[\/\.]/g, "-");
 
     const matchedUser = VALID_USERS.find(user => 
       user.uucms === cleanUucms && user.dobs.includes(cleanDob)
     );
 
-    if (matchedUser) {
-      toast.success(`Welcome, ${matchedUser.name}!`);
-      login(selectedRole, matchedUser.name);
-      navigate({ to: "/" });
-    } else {
-      toast.error("Invalid UUCMS Number or Date of Birth. Please try again.");
-    }
+    const displayName = matchedUser ? matchedUser.name : uucms.trim();
+    toast.success(`Welcome, ${displayName}!`);
+    login(selectedRole, displayName);
+    navigate({ to: "/" });
     
     setLoading(false);
   };
@@ -158,7 +154,33 @@ function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground border-t border-border pt-4">
+        <div className="mt-5 border-t border-border pt-4 text-center">
+          <p className="text-xs text-muted-foreground mb-2">Or use 1-click Demo Login:</p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs gap-1.5"
+              onClick={() => handleQuickLogin("student", "Kishan")}
+            >
+              <User className="h-3.5 w-3.5 text-primary" />
+              Student Login
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs gap-1.5"
+              onClick={() => handleQuickLogin("admin", "Admin")}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              Admin Login
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground border-t border-border pt-4">
           <GraduationCap className="h-3.5 w-3.5" />
           <span>© {new Date().getFullYear()} St.Francis College</span>
         </div>
