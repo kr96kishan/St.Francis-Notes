@@ -12,17 +12,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { role, name } = useAuth();
+  const { name } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!role && typeof window !== "undefined") {
-      const stored = window.localStorage.getItem("sfdc-role");
-      if (!stored) navigate({ to: "/login" });
-    }
-  }, [role, navigate]);
-
-  if (!role) return null;
 
   return (
     <Protected>

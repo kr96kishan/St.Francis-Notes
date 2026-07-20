@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   useState,
   useRef,
@@ -189,48 +189,11 @@ function MessageBubble({ msg }: { msg: UIMessage }) {
   );
 }
 
-// ─── Setup banner (shown when API key is missing) ─────────────────────────────
-function SetupBanner() {
-  return (
-    <div className="mx-4 mb-3 flex flex-col gap-3 rounded-2xl border border-amber-300/40 bg-amber-50/80 p-4 text-sm dark:bg-amber-950/30 dark:border-amber-500/30">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 text-lg">🔑</span>
-        <div className="flex-1">
-          <p className="font-semibold text-amber-800 dark:text-amber-300">AI not configured yet</p>
-          <p className="mt-1 text-amber-700 dark:text-amber-400">
-            Francis AI needs a Gemini API key to work. Here's how to set it up:
-          </p>
-          <ol className="mt-2 list-decimal space-y-1 pl-4 text-amber-700 dark:text-amber-400">
-            <li>
-              Get a free key at{" "}
-              <a
-                href="https://aistudio.google.com/apikey"
-                target="_blank"
-                rel="noreferrer"
-                className="underline font-medium hover:text-amber-900"
-              >
-                aistudio.google.com/apikey
-              </a>
-            </li>
-            <li>
-              Create a <code className="rounded bg-amber-100 px-1 font-mono text-xs dark:bg-amber-900">.env.local</code> file in the project root
-            </li>
-            <li>
-              Add: <code className="rounded bg-amber-100 px-1 font-mono text-xs dark:bg-amber-900">VITE_GEMINI_API_KEY=your_key_here</code>
-            </li>
-            <li>Restart the dev server — it'll work immediately!</li>
-          </ol>
-          <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
-            For production (Cloudflare / Netlify): add <code className="font-mono">VITE_GEMINI_API_KEY</code> in your hosting dashboard's Environment Variables.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 // ─── Main Chat Component ──────────────────────────────────────────────────────
 function Chat() {
+  const navigate = useNavigate();
   const apiKeyReady = isApiKeyConfigured();
 
   const [uiMessages, setUiMessages] = useState<UIMessage[]>([
@@ -239,7 +202,7 @@ function Chat() {
       role: "assistant",
       text: apiKeyReady
         ? "Hey there! 👋 I'm **Francis AI**, your personal study companion for St. Francis College.\n\nI know your **entire BCA syllabus**, can read your notes from photos, summarise videos, generate MCQs, and help you prep for exams. What would you like to explore today?"
-        : "Hi! I'm **Francis AI** — but I need a Gemini API key before I can help you. Check the setup guide above ☝️",
+        : "Currently unavailable.",
     },
   ]);
 
@@ -327,8 +290,7 @@ function Chat() {
       // Map typed credential errors to friendly, actionable messages
       let errText: string;
       if (err instanceof MissingApiKeyError) {
-        errText =
-          "🔑 **API key not configured.** Please add your Gemini API key to `.env.local` as `VITE_GEMINI_API_KEY=your_key_here`, then restart the dev server. See the setup guide at the top of this page.";
+        errText = "Currently unavailable.";
       } else if (err instanceof InvalidApiKeyError) {
         errText =
           "❌ **API key rejected.** Your Gemini key was declined — double-check it at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and make sure the Generative Language API is enabled.";
@@ -419,18 +381,26 @@ function Chat() {
             <p className="text-xs text-muted-foreground">Your BCA study companion • Powered by Gemini</p>
           </div>
         </div>
-        <button
-          onClick={clearConversation}
-          title="Clear conversation"
-          className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition hover:border-destructive/30 hover:text-destructive"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Clear
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={clearConversation}
+            title="Clear conversation"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition hover:border-destructive/30 hover:text-destructive"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Clear
+          </button>
+          <button
+            onClick={() => navigate({ to: "/" })}
+            title="Close Chat"
+            className="flex items-center justify-center h-8 w-8 rounded-lg border border-border bg-card shadow-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* ── Setup banner (only shown when key is missing) ──────────── */}
-      {!apiKeyReady && <SetupBanner />}
+
 
       {/* ── Messages ───────────────────────────────────────────── */}
       <div
