@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SemesterSemIdRouteImport } from './routes/semester.$semId'
 import { Route as SemesterSemIdSubjectIdRouteImport } from './routes/semester.$semId.$subjectId'
@@ -19,6 +20,11 @@ import { Route as SemesterSemIdSubjectIdChapterIdTopicIdRouteImport } from './ro
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -51,6 +57,7 @@ const SemesterSemIdSubjectIdChapterIdTopicIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/chat': typeof ChatRoute
   '/login': typeof LoginRoute
   '/semester/$semId': typeof SemesterSemIdRouteWithChildren
   '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
@@ -59,6 +66,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/chat': typeof ChatRoute
   '/login': typeof LoginRoute
   '/semester/$semId': typeof SemesterSemIdRouteWithChildren
   '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
@@ -68,6 +76,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/chat': typeof ChatRoute
   '/login': typeof LoginRoute
   '/semester/$semId': typeof SemesterSemIdRouteWithChildren
   '/semester/$semId/$subjectId': typeof SemesterSemIdSubjectIdRouteWithChildren
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/chat'
     | '/login'
     | '/semester/$semId'
     | '/semester/$semId/$subjectId'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/chat'
     | '/login'
     | '/semester/$semId'
     | '/semester/$semId/$subjectId'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/chat'
     | '/login'
     | '/semester/$semId'
     | '/semester/$semId/$subjectId'
@@ -103,6 +115,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChatRoute: typeof ChatRoute
   LoginRoute: typeof LoginRoute
   SemesterSemIdRoute: typeof SemesterSemIdRouteWithChildren
 }
@@ -114,6 +127,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -198,6 +218,7 @@ const SemesterSemIdRouteWithChildren = SemesterSemIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChatRoute: ChatRoute,
   LoginRoute: LoginRoute,
   SemesterSemIdRoute: SemesterSemIdRouteWithChildren,
 }

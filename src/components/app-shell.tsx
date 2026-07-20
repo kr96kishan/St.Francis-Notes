@@ -1,5 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, LayoutDashboard, LogOut, ShieldCheck, User, Upload, Trash2, Sun, Moon, MoreVertical } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { BookOpen, LayoutDashboard, LogOut, ShieldCheck, User, Upload, Trash2, Sun, Moon, MoreVertical, Sparkles } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
 
 import { CollegeLogo } from "./college-logo";
@@ -112,6 +112,7 @@ function AppSidebar() {
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, name, logout } = useAuth();
   const crumbs = useBreadcrumbs();
+  const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -206,6 +207,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground">
                   {theme === "light" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
                 </Button>
+
+                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/chat" })} className="gap-2 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI Assistant</span>
+                </Button>
                 
                 <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
                   <LogOut className="h-4 w-4" />
@@ -243,6 +249,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <DropdownMenuSeparator />
                       </>
                     )}
+                    <DropdownMenuItem onClick={() => navigate({ to: "/chat" })} className="gap-2 cursor-pointer">
+                      <Sparkles className="h-4 w-4 text-muted-foreground" />
+                      <span>AI Assistant</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={logout} className="gap-2 cursor-pointer">
                       <LogOut className="h-4 w-4 text-muted-foreground" />
                       <span>Sign out</span>

@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { Download, ExternalLink, FileText, Play, Trash2, Youtube } from "lucide-react";
+import { Bot, Download, ExternalLink, FileText, Play, SendHorizonal, Sparkles, Trash2, Youtube } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import JSZip from "jszip";
 
 import { Protected } from "@/components/protected";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
+import { askGemini } from "@/lib/gemini";
 import { findChapter, findSemester, findSubject, findTopic } from "@/lib/syllabus";
 import {
   buildTopicKey,
@@ -60,6 +61,101 @@ function TopicPage() {
   const videoItems = items.filter((i) => i.type === "youtube");
 
   const [previewFile, setPreviewFile] = useState<{ url: string; name: string } | null>(null);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState([
+    {
+      id: 1,
+      role: "assistant" as const,
+      content: "I can summarize the uploaded notes and video materials in this topic and answer questions about them.",
+    },
+  ]);
+  const [activeMaterial, setActiveMaterial] = useState<UploadedItem | null>(null);
+
+  async function handleAssistantAsk(event?: FormEvent) {
+    event?.preventDefault();
+
+    if (!assistantInput.trim() || assistantLoading) return;
+
+    const currentQuestion = assistantInput.trim();
+    const userMessage = { id: Date.now(), role: "user" as const, content: currentQuestion };
+    setAssistantMessages((prev) => [...prev, userMessage]);
+    setAssistantInput("");
+    setAssistantLoading(true);
+
+    try {
+      const materialContext: string[] = [];
+      materialContext.push(`Topic: ${title}`);
+      materialContext.push(`Subject: ${sub.title}`);
+      materialContext.push(`Chapter: ${ch.title}`);
+
+      if (activeMaterial) {
+        materialContext.push(`Active source: ${activeMaterial.name} (${activeMaterial.type})`);
+        if (activeMaterial.type === "youtube") {
+          materialContext.push(`Video link: ${activeMaterial.url}`);
+        }
+      }
+
+      for (const item of items) {
+        if (item.type === "youtube") {
+          materialContext.push(`Video: ${item.name} | ${item.url}`);
+          continue;
+        }
+
+        let contentText = "";
+        try {
+          if (item.fileBlob) {
+            contentText = await item.fileBlob.text();
+          } else if (item.url) {
+            const response = await fetch(item.url);
+            contentText = await response.text();
+          }
+        } catch (error) {
+          console.warn("Could not read material content", error);
+        }
+
+        if (contentText) {
+          materialContext.push(`Document: ${item.name}\n${contentText.slice(0, 8000)}`);
+        } else {
+          materialContext.push(`Document: ${item.name} (text could not be extracted automatically)`);
+        }
+      }
+
+      const prompt = [
+        "You are a study assistant for this topic.",
+        "Use the uploaded materials as your source of truth.",
+        "If the user asks for a summary, give a concise summary of the materials.",
+        "If they ask a question, answer based on the uploaded documents and video references.",
+        "If a source is unavailable, say so clearly.",
+        "Context:",
+        materialContext.join("\n\n"),
+        "User question:",
+        currentQuestion,
+      ].join("\n\n");
+
+      const response = await askGemini(prompt);
+      setAssistantMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "assistant" as const,
+          content: response ?? "I could not generate an answer from the materials right now.",
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+      setAssistantMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 2,
+          role: "assistant" as const,
+          content: "I hit a problem while reading the materials. Please try again.",
+        },
+      ]);
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
 
   return (
     <Protected>
@@ -184,8 +280,11 @@ function TopicPage() {
               {fileItems.map((item) => (
                 <Card 
                   key={item.id} 
-                  className="border-border bg-secondary/30 hover:bg-secondary/40 transition-colors cursor-pointer"
-                  onClick={() => setPreviewFile({ url: resolveItemUrl(item), name: item.name })}
+                  className={`border-border bg-secondary/30 hover:bg-secondary/40 transition-colors cursor-pointer ${activeMaterial?.id === item.id ? "ring-2 ring-primary/40" : ""}`}
+                  onClick={() => {
+                    setActiveMaterial(item);
+                    setPreviewFile({ url: resolveItemUrl(item), name: item.name });
+                  }}
                 >
                   <CardContent className="flex items-center justify-between gap-4 p-4">
                     <div className="flex items-center gap-4">
@@ -241,6 +340,53 @@ function TopicPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="space-y-4 p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-primary p-2 text-primary-foreground">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Notebook-style AI assistant</div>
+                  <div className="text-sm text-muted-foreground">
+                    Ask questions, request summaries, or compare ideas from the notes and videos in this topic.
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-background/80 p-3">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Active source: {activeMaterial ? activeMaterial.name : "All uploaded materials"}
+                </div>
+                <div className="flex max-h-56 flex-col gap-3 overflow-auto pr-2">
+                  {assistantMessages.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-6 ${message.role === "user" ? "bg-primary text-primary-foreground" : "border border-border bg-card text-card-foreground"}`}>
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleAssistantAsk} className="flex flex-col gap-2 sm:flex-row">
+                <textarea
+                  className="min-h-[90px] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-primary"
+                  value={assistantInput}
+                  onChange={(event) => setAssistantInput(event.target.value)}
+                  placeholder="Summarize this material, explain it simply, or answer a question..."
+                />
+                <button
+                  type="submit"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                >
+                  {assistantLoading ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizonal className="h-4 w-4" />}
+                  {assistantLoading ? "Thinking..." : "Ask AI"}
+                </button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Dynamic File Viewer Modal */}
