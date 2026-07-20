@@ -168,7 +168,7 @@ function MessageBubble({ msg }: { msg: UIMessage }) {
                 <span className="h-2 w-2 rounded-full bg-violet-400 animate-bounce [animation-delay:150ms]" />
                 <span className="h-2 w-2 rounded-full bg-violet-400 animate-bounce [animation-delay:300ms]" />
               </span>
-              <span className="text-xs">Francis AI is thinking…</span>
+              <span className="text-xs">Copo is thinking…</span>
             </span>
           ) : (
             <span
@@ -201,7 +201,7 @@ function Chat() {
       id: 1,
       role: "assistant",
       text: apiKeyReady
-        ? "Hey there! 👋 I'm **Francis AI**, your personal study companion for St. Francis College.\n\nI know your **entire BCA syllabus**, can read your notes from photos, summarise videos, generate MCQs, and help you prep for exams. What would you like to explore today?"
+        ? "Hey there! 👋 I'm **Copo**, your personal study companion for St. Francis College.\n\nI know your **entire BCA syllabus**, can read your notes from photos, summarise videos, generate MCQs, and help you prep for exams. What would you like to explore today?"
         : "Currently unavailable.",
     },
   ]);
@@ -303,7 +303,7 @@ function Chat() {
       } else {
         errText =
           "😓 Something went wrong on my end. Please try again in a moment!";
-        console.error("[Francis AI] Unexpected error:", err);
+        console.error("[Copo] Unexpected error:", err);
       }
 
       setUiMessages((prev) =>
@@ -377,7 +377,7 @@ function Chat() {
             />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">Francis AI</h1>
+            <h1 className="text-base font-bold tracking-tight">Copo</h1>
             <p className="text-xs text-muted-foreground">Your BCA study companion • Powered by Gemini</p>
           </div>
         </div>
