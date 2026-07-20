@@ -40,14 +40,6 @@ function Index() {
               Browse the complete BCA syllabus by semester. Notes, chapters and topics — beautifully organised.
             </p>
 
-            <div className="mt-6">
-               <button
-                 onClick={() => navigate({ to: "/chat" })}
-             className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
-  >
-    🤖 AI Study Assistant
-  </button>
-</div>
           </div>
         </div>
 
