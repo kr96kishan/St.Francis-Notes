@@ -19,7 +19,8 @@ import {
   buildChapterKey, 
   useCustomTopics,
   isImageFile,
-  isVideoFile 
+  isVideoFile,
+  fileToDataUrl
 } from "@/lib/content-store";
 
 interface UploadModalProps {
@@ -131,12 +132,22 @@ export function UploadModal({
       const customName = materialTitle.trim() || selectedFile.name;
       const isVid = isVideoFile({ name: selectedFile.name, mime: selectedFile.type });
 
+      let fileDataUrl = "";
+      if (selectedFile.size <= 50 * 1024 * 1024) {
+        try {
+          fileDataUrl = await fileToDataUrl(selectedFile);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       addContent(pyqKey, {
         type: isVid ? "video" : "file",
         name: customName,
         size: selectedFile.size,
         mime: selectedFile.type,
         fileBlob: selectedFile,
+        url: fileDataUrl,
         uploadedBy: currentUserName || "Admin",
       });
 
@@ -202,12 +213,21 @@ export function UploadModal({
           toast.error("Video file exceeds the 1 GB size limit.");
           return;
         }
+        let vidDataUrl = "";
+        if (selectedFile.size <= 50 * 1024 * 1024) {
+          try {
+            vidDataUrl = await fileToDataUrl(selectedFile);
+          } catch (e) {
+            console.error(e);
+          }
+        }
         addContent(topicKey, {
           type: "video",
           name: materialTitle.trim() || selectedFile.name,
           size: selectedFile.size,
           mime: selectedFile.type,
           fileBlob: selectedFile,
+          url: vidDataUrl,
           uploadedBy: currentUserName || "Admin",
         });
         triggerSuccessScreen();
@@ -225,12 +245,22 @@ export function UploadModal({
 
       const isVid = isVideoFile({ name: selectedFile.name, mime: selectedFile.type });
 
+      let docDataUrl = "";
+      if (selectedFile.size <= 50 * 1024 * 1024) {
+        try {
+          docDataUrl = await fileToDataUrl(selectedFile);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       addContent(topicKey, {
         type: isVid ? "video" : "file",
         name: materialTitle.trim() || selectedFile.name,
         size: selectedFile.size,
         mime: selectedFile.type,
         fileBlob: selectedFile,
+        url: docDataUrl,
         uploadedBy: currentUserName || "Admin",
       });
       triggerSuccessScreen();

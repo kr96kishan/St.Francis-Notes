@@ -303,6 +303,19 @@ function TopicPage() {
           const itemToCheck = previewFile.item || { name: previewFile.name };
           const isImg = isImageFile(itemToCheck);
           const isVid = isVideoFile(itemToCheck);
+          const isPdf = isPdfFile(itemToCheck);
+
+          const openInNewTab = () => {
+            if (!previewFile.url) return;
+            const win = window.open();
+            if (win) {
+              if (isImg) {
+                win.document.write(`<body style="margin:0;background:#0e1117;display:flex;justify-content:center;align-items:center;min-height:100vh;"><img src="${previewFile.url}" style="max-width:100%;max-height:100vh;object-fit:contain;" /></body>`);
+              } else {
+                win.document.write(`<body style="margin:0;height:100vh;"><iframe src="${previewFile.url}" style="width:100%;height:100%;border:none;"></iframe></body>`);
+              }
+            }
+          };
 
           return (
             <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
@@ -324,7 +337,10 @@ function TopicPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 pr-6">
-                    <a href={previewFile.url} download={previewFile.name} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" variant="outline" onClick={openInNewTab} className="gap-1.5 text-xs">
+                      <ExternalLink className="h-3.5 w-3.5" /> Open Full Screen
+                    </Button>
+                    <a href={previewFile.url} download={previewFile.name}>
                       <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                         <Download className="h-4 w-4" /> Download File
                       </Button>
@@ -347,6 +363,19 @@ function TopicPage() {
                       src={previewFile.url} 
                       className="max-h-[75vh] w-full bg-black object-contain"
                     />
+                  ) : isPdf ? (
+                    <object 
+                      data={previewFile.url} 
+                      type="application/pdf" 
+                      className="h-full w-full bg-card rounded-xl"
+                    >
+                      <embed src={previewFile.url} type="application/pdf" className="h-full w-full" />
+                      <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+                        <FileText className="h-12 w-12 text-primary" />
+                        <p className="text-sm font-medium text-foreground">PDF Document Ready</p>
+                        <Button size="sm" onClick={openInNewTab}>Open PDF in New Window</Button>
+                      </div>
+                    </object>
                   ) : previewFile.url ? (
                     <iframe
                       className="h-full w-full bg-card border-0"
@@ -356,10 +385,8 @@ function TopicPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
                       <FileText className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-sm font-medium text-foreground">File preview not available directly in browser.</p>
-                      <a href={previewFile.url} download={previewFile.name}>
-                        <Button size="sm" variant="outline">Download File</Button>
-                      </a>
+                      <p className="text-sm font-medium text-foreground">File preview not available directly in frame.</p>
+                      <Button size="sm" onClick={openInNewTab}>Open in New Window</Button>
                     </div>
                   )}
                 </div>
