@@ -16,6 +16,8 @@ export interface UploadedItem {
   mime?: string;
   /** ISO timestamp */
   uploadedAt: string;
+  /** Name of the uploader (Admin/User) */
+  uploadedBy?: string;
   /** Binary file stored natively in IndexedDB */
   fileBlob?: Blob | File;
 }
@@ -240,13 +242,14 @@ export function useMaterialCount(prefix?: string): number {
 
 export function useAddContent() {
   return useCallback(
-    (topicKey: string, item: Omit<UploadedItem, "id" | "uploadedAt" | "url"> & { url?: string; fileBlob?: Blob }) => {
+    (topicKey: string, item: Omit<UploadedItem, "id" | "uploadedAt" | "url"> & { url?: string; fileBlob?: Blob; uploadedBy?: string }) => {
       const items = [...(contentCache[topicKey] ?? [])];
       const newItem: UploadedItem = {
         ...item,
         url: item.url || "",
         id: crypto.randomUUID(),
         uploadedAt: new Date().toISOString(),
+        uploadedBy: item.uploadedBy || "Admin",
       };
       items.push(newItem);
       contentCache[topicKey] = items;

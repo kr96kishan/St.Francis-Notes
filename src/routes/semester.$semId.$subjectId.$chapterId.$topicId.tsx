@@ -120,11 +120,15 @@ function TopicPage() {
                           )}
                           <div>
                             <span className="text-sm font-semibold text-foreground block">{item.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {isLocalVid 
-                                ? (item.size ? `${(item.size / (1024 * 1024)).toFixed(1)} MB · Local Video` : "Local Video") 
-                                : "YouTube Stream"}
-                            </span>
+                            <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1.5">
+                              <span>
+                                {isLocalVid 
+                                  ? (item.size ? `${(item.size / (1024 * 1024)).toFixed(1)} MB · Local Video` : "Local Video") 
+                                  : "YouTube Stream"}
+                              </span>
+                              <span>·</span>
+                              <span>Uploaded by <strong className="font-semibold text-foreground">{item.uploadedBy || "Admin"}</strong></span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -245,7 +249,8 @@ function TopicPage() {
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {item.size ? `${(item.size / 1024).toFixed(1)} KB` : "Document"} ·{" "}
-                            {new Date(item.uploadedAt).toLocaleDateString()}
+                            {new Date(item.uploadedAt).toLocaleDateString()} ·{" "}
+                            Uploaded by <span className="font-medium text-foreground">{item.uploadedBy || "Admin"}</span>
                           </div>
                         </div>
                       </div>
@@ -309,6 +314,9 @@ function TopicPage() {
                     )}
                     {previewFile.name}
                   </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uploaded by <span className="font-semibold text-foreground">{previewFile.item?.uploadedBy || "Admin"}</span>
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 pr-6">
                   <a href={previewFile.url} download={previewFile.name}>

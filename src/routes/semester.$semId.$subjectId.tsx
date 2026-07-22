@@ -263,7 +263,7 @@ function SubjectPage() {
                           <div className="min-w-0">
                             <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {item.size ? `${(item.size / 1024).toFixed(1)} KB` : "Document"}
+                              {item.size ? `${(item.size / 1024).toFixed(1)} KB` : "Document"} · Uploaded by <span className="font-medium text-foreground">{item.uploadedBy || "Admin"}</span>
                             </p>
                           </div>
                         </div>
@@ -348,6 +348,9 @@ function SubjectPage() {
                     )}
                     {previewFile.name}
                   </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uploaded by <span className="font-semibold text-foreground">{previewFile.item?.uploadedBy || "Admin"}</span>
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 pr-6">
                   <a href={previewFile.url} download={previewFile.name}>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { syllabus } from "@/lib/syllabus";
+import { useAuth } from "@/lib/auth-context";
 import { 
   useAddContent, 
   extractYouTubeId, 
@@ -40,6 +41,7 @@ export function UploadModal({
   defaultTopicId,
   defaultMaterialType = "file"
 }: UploadModalProps) {
+  const { name: currentUserName } = useAuth();
   const [semId, setSemId] = useState<string>(defaultSemesterId || "");
   const [subId, setSubId] = useState<string>(defaultSubjectId || "");
   const [chId, setChId] = useState<string>(defaultChapterId || "");
@@ -135,6 +137,7 @@ export function UploadModal({
         size: selectedFile.size,
         mime: selectedFile.type,
         fileBlob: selectedFile,
+        uploadedBy: currentUserName || "Admin",
       });
 
       triggerSuccessScreen();
@@ -186,6 +189,7 @@ export function UploadModal({
           type: "youtube",
           name: materialTitle.trim() || "Video Lecture",
           url: ytUrl,
+          uploadedBy: currentUserName || "Admin",
         });
         triggerSuccessScreen();
       } else {
@@ -204,6 +208,7 @@ export function UploadModal({
           size: selectedFile.size,
           mime: selectedFile.type,
           fileBlob: selectedFile,
+          uploadedBy: currentUserName || "Admin",
         });
         triggerSuccessScreen();
       }
@@ -226,6 +231,7 @@ export function UploadModal({
         size: selectedFile.size,
         mime: selectedFile.type,
         fileBlob: selectedFile,
+        uploadedBy: currentUserName || "Admin",
       });
       triggerSuccessScreen();
     }
