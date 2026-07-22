@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, FileText, Youtube, FileQuestion, BookOpen, AlertCircle } from "lucide-react";
+import { Trash2, FileText, Youtube, FileQuestion, BookOpen, AlertCircle, Film, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -15,7 +15,9 @@ import {
   useCustomTopics, 
   useRemoveCustomTopic,
   buildTopicKey, 
-  buildChapterKey 
+  buildChapterKey,
+  isImageFile,
+  isVideoFile 
 } from "@/lib/content-store";
 
 interface DeleteModalProps {
@@ -153,6 +155,10 @@ export function DeleteModal({ open, onOpenChange }: DeleteModalProps) {
                         <div className="flex items-center gap-2 min-w-0">
                           {item.type === "youtube" ? (
                             <Youtube className="h-4 w-4 text-red-500 shrink-0" />
+                          ) : item.type === "video" || isVideoFile(item) ? (
+                            <Film className="h-4 w-4 text-blue-500 shrink-0" />
+                          ) : isImageFile(item) ? (
+                            <ImageIcon className="h-4 w-4 text-emerald-500 shrink-0" />
                           ) : (
                             <FileText className="h-4 w-4 text-primary shrink-0" />
                           )}
@@ -175,7 +181,7 @@ export function DeleteModal({ open, onOpenChange }: DeleteModalProps) {
                 </div>
               ) : (
                 <div className="text-center p-6 border border-dashed border-border rounded-xl">
-                  <p className="text-xs text-muted-foreground">No notes or videos uploaded for this topic.</p>
+                  <p className="text-xs text-muted-foreground">No notes, photos, or videos uploaded for this topic.</p>
                 </div>
               )}
             </TabsContent>
@@ -193,7 +199,13 @@ export function DeleteModal({ open, onOpenChange }: DeleteModalProps) {
                     {pyqMaterials.map(item => (
                       <div key={item.id} className="flex items-center justify-between gap-3 bg-secondary/30 rounded-lg p-2.5 border border-border/20">
                         <div className="flex items-center gap-2 min-w-0">
-                          <FileQuestion className="h-4 w-4 text-primary shrink-0" />
+                          {item.type === "video" || isVideoFile(item) ? (
+                            <Film className="h-4 w-4 text-blue-500 shrink-0" />
+                          ) : isImageFile(item) ? (
+                            <ImageIcon className="h-4 w-4 text-emerald-500 shrink-0" />
+                          ) : (
+                            <FileQuestion className="h-4 w-4 text-primary shrink-0" />
+                          )}
                           <span className="text-xs font-semibold text-foreground truncate">{item.name}</span>
                         </div>
                         <Button

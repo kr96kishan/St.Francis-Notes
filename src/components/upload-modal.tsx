@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from "react";
-import { UploadCloud, Youtube, Link2, FileText, FileQuestion, Check } from "lucide-react";
+import { UploadCloud, Youtube, Link2, FileText, FileQuestion, Check, Video, Image as ImageIcon, Film } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,7 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { syllabus } from "@/lib/syllabus";
-import { useAddContent, fileToDataUrl, extractYouTubeId, buildTopicKey, useAddCustomTopic, buildChapterKey, useCustomTopics } from "@/lib/content-store";
+import { 
+  useAddContent, 
+  extractYouTubeId, 
+  buildTopicKey, 
+  useAddCustomTopic, 
+  buildChapterKey, 
+  useCustomTopics,
+  isImageFile,
+  isVideoFile 
+} from "@/lib/content-store";
 
 interface UploadModalProps {
   open: boolean;
@@ -19,7 +28,7 @@ interface UploadModalProps {
   defaultSubjectId?: string;
   defaultChapterId?: string;
   defaultTopicId?: string;
-  defaultMaterialType?: "file" | "youtube" | "pyq";
+  defaultMaterialType?: "file" | "video" | "youtube" | "pyq";
 }
 
 export function UploadModal({ 
@@ -37,8 +46,11 @@ export function UploadModal({
   const [topicId, setTopicId] = useState<string>(defaultTopicId || "");
 
   const [customTopicTitle, setCustomTopicTitle] = useState("");
-  const [pyqTitle, setPyqTitle] = useState("");
-  const [materialType, setMaterialType] = useState<"file" | "youtube" | "pyq">(defaultMaterialType);
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialType, setMaterialType] = useState<"file" | "video" | "pyq">(
+    defaultMaterialType === "youtube" ? "video" : (defaultMaterialType as "file" | "video" | "pyq")
+  );
+  const [videoSource, setVideoSource] = useState<"file" | "youtube">("youtube");
   const [ytUrl, setYtUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -71,8 +83,9 @@ export function UploadModal({
     setChId(defaultChapterId || "");
     setTopicId(defaultTopicId || "");
     setCustomTopicTitle("");
-    setPyqTitle("");
-    setMaterialType(defaultMaterialType);
+    setMaterialTitle("");
+    setMaterialType(defaultMaterialType === "youtube" ? "video" : (defaultMaterialType as "file" | "video" | "pyq"));
+    setVideoSource("youtube");
     setYtUrl("");
     setSelectedFile(null);
   };
@@ -102,10 +115,10 @@ export function UploadModal({
       return;
     }
 
-    // Subject-wide PYQ Upload
+    // Subject-wide PYQ / Revision Upload
     if (materialType === "pyq") {
       if (!selectedFile) {
-        toast.error("Please upload a local PYQ/Revision document.");
+        toast.error("Please select a file to upload.");
         return;
       }
       if (selectedFile.size > 1024 * 1024 * 1024) {
@@ -113,10 +126,11 @@ export function UploadModal({
         return;
       }
       const pyqKey = `${selectedSem.id}/${selectedSub.id}/pyqs`;
-      const customName = pyqTitle.trim() || selectedFile.name;
-      
+      const customName = materialTitle.trim() || selectedFile.name;
+      const isVid = isVideoFile({ name: selectedFile.name, mime: selectedFile.type });
+
       addContent(pyqKey, {
-        type: "file",
+        type: isVid ? "video" : "file",
         name: customName,
         size: selectedFile.size,
         mime: selectedFile.type,
@@ -127,7 +141,7 @@ export function UploadModal({
       return;
     }
 
-    // Topic-specific validations (file/youtube)
+    // Topic-specific validations (file/video)
     if (!chId) {
       toast.error("Invalid or missing Unit/Chapter selection.");
       return;
@@ -156,41 +170,88 @@ export function UploadModal({
     const targetChId = isSubjectCustomTopic ? "general" : selectedCh!.id;
     const topicKey = buildTopicKey(selectedSem.id, selectedSub.id, targetChId, finalTopicId);
 
-    if (materialType === "file") {
+    if (materialType === "video") {
+      if (videoSource === "youtube") {
+        if (!ytUrl.trim()) {
+          toast.error("Please paste a YouTube URL.");
+          return;
+        }
+        const videoId = extractYouTubeId(ytUrl);
+        if (!videoId) {
+          toast.error("Invalid YouTube URL. Please verify the link.");
+          return;
+        }
+
+        addContent(topicKey, {
+          type: "youtube",
+          name: materialTitle.trim() || "Video Lecture",
+          url: ytUrl,
+        });
+        triggerSuccessScreen();
+      } else {
+        // Local Video File Upload
+        if (!selectedFile) {
+          toast.error("Please upload a local video file.");
+          return;
+        }
+        if (selectedFile.size > 1024 * 1024 * 1024) {
+          toast.error("Video file exceeds the 1 GB size limit.");
+          return;
+        }
+        addContent(topicKey, {
+          type: "video",
+          name: materialTitle.trim() || selectedFile.name,
+          size: selectedFile.size,
+          mime: selectedFile.type,
+          fileBlob: selectedFile,
+        });
+        triggerSuccessScreen();
+      }
+    } else {
+      // General File / Document / Photo Upload
       if (!selectedFile) {
-        toast.error("Please upload a local file/document.");
+        toast.error("Please upload a local file or image.");
         return;
       }
       if (selectedFile.size > 1024 * 1024 * 1024) {
         toast.error("File exceeds the 1 GB size limit.");
         return;
       }
+
+      const isVid = isVideoFile({ name: selectedFile.name, mime: selectedFile.type });
+
       addContent(topicKey, {
-        type: "file",
-        name: selectedFile.name,
+        type: isVid ? "video" : "file",
+        name: materialTitle.trim() || selectedFile.name,
         size: selectedFile.size,
         mime: selectedFile.type,
         fileBlob: selectedFile,
       });
       triggerSuccessScreen();
-    } else {
-      if (!ytUrl.trim()) {
-        toast.error("Please paste a YouTube URL.");
-        return;
-      }
-      const videoId = extractYouTubeId(ytUrl);
-      if (!videoId) {
-        toast.error("Invalid YouTube URL. Please verify the link.");
-        return;
-      }
-
-      addContent(topicKey, {
-        type: "youtube",
-        name: "Video Lecture",
-        url: ytUrl,
-      });
-      triggerSuccessScreen();
     }
+  };
+
+  const getFileBadge = () => {
+    if (!selectedFile) return null;
+    if (isVideoFile({ name: selectedFile.name, mime: selectedFile.type })) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-500">
+          <Video className="h-3 w-3" /> Video File
+        </span>
+      );
+    }
+    if (isImageFile({ name: selectedFile.name, mime: selectedFile.type })) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500">
+          <ImageIcon className="h-3 w-3" /> Photo / Image
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500">
+        <FileText className="h-3 w-3" /> Document / PDF
+      </span>
+    );
   };
 
   return (
@@ -215,7 +276,7 @@ export function UploadModal({
             <DialogHeader>
               <DialogTitle>Upload Material</DialogTitle>
               <DialogDescription>
-                Attach syllabus notes, YouTube lectures, or subject PYQs & class notes.
+                Attach PDFs, photos, video lectures (local files or YouTube), or subject PYQs.
               </DialogDescription>
             </DialogHeader>
 
@@ -302,11 +363,11 @@ export function UploadModal({
               )}
 
               <div className="pt-4 border-t border-border space-y-3">
-                <Label>Material Attachment Option</Label>
+                <Label>Material Category</Label>
                 <RadioGroup 
                   value={materialType} 
                   onValueChange={(val) => {
-                    setMaterialType(val as "file" | "youtube" | "pyq");
+                    setMaterialType(val as "file" | "video" | "pyq");
                     setSelectedFile(null);
                     setYtUrl("");
                   }}
@@ -315,61 +376,113 @@ export function UploadModal({
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="file" id="opt-file" />
                     <Label htmlFor="opt-file" className="cursor-pointer font-normal flex items-center gap-1.5 text-xs sm:text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground" /> Topic Notes
+                      <FileText className="h-4 w-4 text-muted-foreground" /> PDF, Notes & Photos
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="youtube" id="opt-youtube" />
-                    <Label htmlFor="opt-youtube" className="cursor-pointer font-normal flex items-center gap-1.5 text-xs sm:text-sm">
-                      <Youtube className="h-4 w-4 text-muted-foreground" /> Video Lecture
+                    <RadioGroupItem value="video" id="opt-video" />
+                    <Label htmlFor="opt-video" className="cursor-pointer font-normal flex items-center gap-1.5 text-xs sm:text-sm">
+                      <Video className="h-4 w-4 text-muted-foreground" /> Video Lecture
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="pyq" id="opt-pyq" />
                     <Label htmlFor="opt-pyq" className="cursor-pointer font-normal flex items-center gap-1.5 text-xs sm:text-sm">
-                      <FileQuestion className="h-4 w-4 text-muted-foreground" /> PYQ/Revision/Class Notes
+                      <FileQuestion className="h-4 w-4 text-muted-foreground" /> PYQs & Revisions
                     </Label>
                   </div>
                 </RadioGroup>
 
-                {materialType === "file" || materialType === "pyq" ? (
-                  <div className="mt-3 space-y-3">
-                    {materialType === "pyq" && (
-                      <div className="space-y-1.5 animate-in fade-in duration-200">
-                        <Label>Material Title / Description</Label>
+                {/* Optional Material Title */}
+                <div className="space-y-1.5 pt-2">
+                  <Label>Display Title / Description (Optional)</Label>
+                  <Input 
+                    placeholder="e.g. Unit 1 Video Lecture, 2024 Exam Paper, Lab Diagram..." 
+                    value={materialTitle}
+                    onChange={e => setMaterialTitle(e.target.value)}
+                  />
+                </div>
+
+                {/* Video Lecture specific source selection */}
+                {materialType === "video" && (
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Video Source</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={videoSource === "file" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => { setVideoSource("file"); setYtUrl(""); }}
+                        className="gap-2 text-xs"
+                      >
+                        <Film className="h-4 w-4" /> Upload Local Video
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={videoSource === "youtube" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => { setVideoSource("youtube"); setSelectedFile(null); }}
+                        className="gap-2 text-xs"
+                      >
+                        <Youtube className="h-4 w-4" /> YouTube Link
+                      </Button>
+                    </div>
+
+                    {videoSource === "youtube" ? (
+                      <div className="relative mt-2">
+                        <Link2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input 
-                          placeholder="e.g. 2024 End Sem Exam Paper, Unit 1 Class Notes..." 
-                          value={pyqTitle}
-                          onChange={e => setPyqTitle(e.target.value)}
+                          placeholder="https://youtube.com/watch?v=..." 
+                          className="pl-9"
+                          value={ytUrl}
+                          onChange={e => setYtUrl(e.target.value)}
                         />
                       </div>
+                    ) : (
+                      <div className="space-y-2 mt-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept="video/*,.mp4,.webm,.mov,.avi,.mkv"
+                            onChange={handleFileChange}
+                          />
+                          <Button variant="outline" type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                            <UploadCloud className="h-4 w-4" /> Choose Video File
+                          </Button>
+                          {getFileBadge()}
+                        </div>
+                        <span className="text-xs text-muted-foreground block">
+                          {selectedFile ? `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)` : "Supported: MP4, WEBM, MOV, MKV up to 1 GB"}
+                        </span>
+                      </div>
                     )}
+                  </div>
+                )}
 
-                    <div className="flex items-center gap-3">
+                {/* Local file inputs for "file" or "pyq" */}
+                {(materialType === "file" || materialType === "pyq") && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-3">
                       <input
                         ref={fileInputRef}
                         type="file"
                         className="hidden"
-                        accept=".pdf,.docx,.pptx,.jpg,.png"
+                        accept=".pdf,.docx,.pptx,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm,.mov,.avi,.mkv,image/*,video/*,application/pdf"
                         onChange={handleFileChange}
                       />
                       <Button variant="outline" type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
                         <UploadCloud className="h-4 w-4" /> Choose Local File
                       </Button>
-                      <span className="text-xs text-muted-foreground">
-                        {selectedFile ? selectedFile.name : "No file chosen (PDF, DOCX up to 5 MB)"}
-                      </span>
+                      {getFileBadge()}
                     </div>
-                  </div>
-                ) : (
-                  <div className="mt-3 relative">
-                    <Link2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="https://youtube.com/watch?v=..." 
-                      className="pl-9"
-                      value={ytUrl}
-                      onChange={e => setYtUrl(e.target.value)}
-                    />
+                    <span className="text-xs text-muted-foreground block">
+                      {selectedFile 
+                        ? `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)` 
+                        : "Supported: PDFs, Photos (PNG, JPG, WEBP), Videos (MP4, WEBM), Docs up to 1 GB"
+                      }
+                    </span>
                   </div>
                 )}
               </div>

@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronRight, FolderOpen, FileQuestion, Plus, Trash2, Download, FileText, BookOpen, Search } from "lucide-react";
+import { ChevronRight, FolderOpen, FileQuestion, Plus, Trash2, Download, FileText, BookOpen, Search, Image as ImageIcon, Film, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import { Protected } from "@/components/protected";
@@ -16,7 +16,10 @@ import {
   useCustomTopics, 
   useRemoveCustomTopic, 
   buildChapterKey,
-  resolveItemUrl 
+  resolveItemUrl,
+  isImageFile,
+  isVideoFile,
+  type UploadedItem,
 } from "@/lib/content-store";
 import { UploadModal } from "@/components/upload-modal";
 
@@ -45,7 +48,7 @@ function SubjectPage() {
   const isExact = pathname === `/semester/${sem.id}/${sub.id}`;
 
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [previewFile, setPreviewFile] = useState<{ url: string; name: string } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ url: string; name: string; item?: UploadedItem } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const pyqKey = `${sem.id}/${sub.id}/pyqs`;
@@ -237,44 +240,55 @@ function SubjectPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {filteredPyqs.map(item => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between gap-4 bg-secondary/35 border border-border/40 rounded-xl p-4 shadow-sm hover:shadow hover:bg-secondary/40 transition-all duration-200 cursor-pointer"
-                      onClick={() => setPreviewFile({ url: resolveItemUrl(item), name: item.name })}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <FileText className="h-4.5 w-4.5" />
+                  {filteredPyqs.map(item => {
+                    const isImg = isImageFile(item);
+                    const isVid = isVideoFile(item);
+
+                    return (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between gap-4 bg-secondary/35 border border-border/40 rounded-xl p-4 shadow-sm hover:shadow hover:bg-secondary/40 transition-all duration-200 cursor-pointer"
+                        onClick={() => setPreviewFile({ url: resolveItemUrl(item), name: item.name, item })}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            {isVid ? (
+                              <Film className="h-4.5 w-4.5 text-blue-500" />
+                            ) : isImg ? (
+                              <ImageIcon className="h-4.5 w-4.5 text-emerald-500" />
+                            ) : (
+                              <FileText className="h-4.5 w-4.5 text-primary" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {item.size ? `${(item.size / 1024).toFixed(1)} KB` : "Document"}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {item.size ? `${(item.size / 1024).toFixed(1)} KB` : "Document"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button size="sm" variant="outline" className="h-8 px-2.5 gap-1 text-xs">
-                          <FileText className="h-3.5 w-3.5" /> View
-                        </Button>
-                        {role === "admin" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeContent(pyqKey, item.id);
-                              toast.success("PYQ deleted");
-                            }}
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button size="sm" variant="outline" className="h-8 px-2.5 gap-1 text-xs">
+                            {isVid ? <Film className="h-3.5 w-3.5" /> : isImg ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />} View
                           </Button>
-                        )}
+                          {role === "admin" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeContent(pyqKey, item.id);
+                                toast.success("Resource deleted");
+                              }}
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -325,23 +339,47 @@ function SubjectPage() {
               <DialogHeader className="flex flex-row items-center justify-between border-b pb-3 border-border">
                 <div>
                   <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" /> {previewFile.name}
+                    {previewFile.item && isImageFile(previewFile.item) ? (
+                      <ImageIcon className="h-5 w-5 text-emerald-500" />
+                    ) : previewFile.item && isVideoFile(previewFile.item) ? (
+                      <Video className="h-5 w-5 text-blue-500" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-primary" />
+                    )}
+                    {previewFile.name}
                   </DialogTitle>
                 </div>
                 <div className="flex items-center gap-2 pr-6">
                   <a href={previewFile.url} download={previewFile.name}>
                     <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                      <Download className="h-4 w-4" /> Download PDF
+                      <Download className="h-4 w-4" /> Download File
                     </Button>
                   </a>
                 </div>
               </DialogHeader>
-              <div className="flex-1 mt-4 aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted shadow-inner">
-                <iframe
-                  className="h-full w-full bg-card"
-                  src={previewFile.url}
-                  title={previewFile.name}
-                />
+              <div className="flex-1 mt-4 aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted shadow-inner flex items-center justify-center">
+                {previewFile.item && isImageFile(previewFile.item) ? (
+                  <div className="flex items-center justify-center p-4 w-full h-full bg-black/40 overflow-auto">
+                    <img 
+                      src={previewFile.url} 
+                      alt={previewFile.name} 
+                      className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain mx-auto shadow-2xl" 
+                    />
+                  </div>
+                ) : previewFile.item && isVideoFile(previewFile.item) ? (
+                  <video 
+                    controls 
+                    autoPlay 
+                    src={previewFile.url} 
+                    className="max-h-[75vh] w-full bg-black object-contain"
+                  />
+                ) : (
+                  <iframe
+                    className="h-full w-full bg-card"
+                    src={previewFile.url}
+                    title={previewFile.name}
+                  />
+                )}
               </div>
             </DialogContent>
           </Dialog>

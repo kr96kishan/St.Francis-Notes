@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type ContentType = "file" | "youtube";
+export type ContentType = "file" | "youtube" | "video";
 
 export interface UploadedItem {
   id: string;
@@ -10,14 +10,30 @@ export interface UploadedItem {
   name: string;
   /** For base64 fallback or youtube url */
   url: string;
-  /** File size in bytes (only for type "file") */
+  /** File size in bytes (only for type "file" or "video") */
   size?: number;
-  /** MIME type (only for type "file") */
+  /** MIME type (only for type "file" or "video") */
   mime?: string;
   /** ISO timestamp */
   uploadedAt: string;
   /** Binary file stored natively in IndexedDB */
   fileBlob?: Blob | File;
+}
+
+export function isImageFile(item: { name: string; mime?: string }): boolean {
+  if (item.mime?.startsWith("image/")) return true;
+  return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(item.name);
+}
+
+export function isVideoFile(item: { name: string; mime?: string; type?: string }): boolean {
+  if (item.type === "video") return true;
+  if (item.mime?.startsWith("video/")) return true;
+  return /\.(mp4|webm|ogg|mov|avi|mkv|m4v)$/i.test(item.name);
+}
+
+export function isPdfFile(item: { name: string; mime?: string }): boolean {
+  if (item.mime === "application/pdf") return true;
+  return /\.pdf$/i.test(item.name);
 }
 
 type ContentMap = Record<string, UploadedItem[]>;
