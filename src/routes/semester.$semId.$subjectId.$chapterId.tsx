@@ -30,15 +30,15 @@ function ChapterPage() {
   const { sem, sub, ch } = Route.useLoaderData();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isExact = pathname === `/semester/${sem.id}/${sub.id}/${ch.id}`;
 
-  if (!isExact) {
-    return <Outlet />;
-  }
-  
   const chapterKey = buildChapterKey(sem.id, sub.id, ch.id);
   const customTopics = useCustomTopics(chapterKey);
   const allTopics = [...ch.topics, ...customTopics];
+
+  const isExact = pathname === `/semester/${sem.id}/${sub.id}/${ch.id}`;
+  if (!isExact) {
+    return <Outlet />;
+  }
 
   return (
     <Protected>

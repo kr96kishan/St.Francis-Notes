@@ -22,19 +22,41 @@ export interface UploadedItem {
   fileBlob?: Blob | File;
 }
 
-export function isImageFile(item: { name: string; mime?: string }): boolean {
-  if (item.mime?.startsWith("image/")) return true;
-  return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(item.name);
+export function getMimeTypeFromName(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "pdf": return "application/pdf";
+    case "png": return "image/png";
+    case "jpg":
+    case "jpeg": return "image/jpeg";
+    case "gif": return "image/gif";
+    case "webp": return "image/webp";
+    case "svg": return "image/svg+xml";
+    case "mp4": return "video/mp4";
+    case "webm": return "video/webm";
+    case "mov": return "video/quicktime";
+    case "mkv": return "video/x-matroska";
+    case "txt": return "text/plain";
+    default: return "application/octet-stream";
+  }
 }
 
-export function isVideoFile(item: { name: string; mime?: string; type?: string }): boolean {
+export function isImageFile(item: { name: string; mime?: string; fileBlob?: Blob | File }): boolean {
+  if (item.mime?.startsWith("image/")) return true;
+  if (item.fileBlob?.type?.startsWith("image/")) return true;
+  return /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(item.name);
+}
+
+export function isVideoFile(item: { name: string; mime?: string; type?: string; fileBlob?: Blob | File }): boolean {
   if (item.type === "video") return true;
   if (item.mime?.startsWith("video/")) return true;
+  if (item.fileBlob?.type?.startsWith("video/")) return true;
   return /\.(mp4|webm|ogg|mov|avi|mkv|m4v)$/i.test(item.name);
 }
 
-export function isPdfFile(item: { name: string; mime?: string }): boolean {
+export function isPdfFile(item: { name: string; mime?: string; fileBlob?: Blob | File }): boolean {
   if (item.mime === "application/pdf") return true;
+  if (item.fileBlob?.type === "application/pdf") return true;
   return /\.pdf$/i.test(item.name);
 }
 
@@ -193,7 +215,9 @@ export function fileToDataUrl(file: File): Promise<string> {
 export function resolveItemUrl(item: UploadedItem): string {
   if (item.type === "youtube") return item.url;
   if (item.fileBlob) {
-    return URL.createObjectURL(item.fileBlob);
+    const mime = item.mime || item.fileBlob.type || getMimeTypeFromName(item.name);
+    const blobWithType = item.fileBlob.type ? item.fileBlob : new Blob([item.fileBlob], { type: mime });
+    return URL.createObjectURL(blobWithType);
   }
   return item.url;
 }

@@ -299,60 +299,74 @@ function TopicPage() {
         </div>
 
         {/* Dynamic File & Image & Video Previewer Modal */}
-        {previewFile && (
-          <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
-            <DialogContent className="sm:max-w-[85vw] w-full max-h-[90vh] flex flex-col p-6">
-              <DialogHeader className="flex flex-row items-center justify-between border-b pb-3 border-border">
-                <div>
-                  <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                    {previewFile.item && isImageFile(previewFile.item) ? (
-                      <ImageIcon className="h-5 w-5 text-emerald-500" />
-                    ) : previewFile.item && isVideoFile(previewFile.item) ? (
-                      <Video className="h-5 w-5 text-blue-500" />
-                    ) : (
-                      <FileText className="h-5 w-5 text-primary" />
-                    )}
-                    {previewFile.name}
-                  </DialogTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Uploaded by <span className="font-semibold text-foreground">{previewFile.item?.uploadedBy || "Admin"}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 pr-6">
-                  <a href={previewFile.url} download={previewFile.name}>
-                    <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                      <Download className="h-4 w-4" /> Download File
-                    </Button>
-                  </a>
-                </div>
-              </DialogHeader>
-              <div className="flex-1 mt-4 aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted shadow-inner flex items-center justify-center">
-                {previewFile.item && isImageFile(previewFile.item) ? (
-                  <div className="flex items-center justify-center p-4 w-full h-full bg-black/40 overflow-auto">
-                    <img 
-                      src={previewFile.url} 
-                      alt={previewFile.name} 
-                      className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain mx-auto shadow-2xl" 
-                    />
+        {previewFile && (() => {
+          const itemToCheck = previewFile.item || { name: previewFile.name };
+          const isImg = isImageFile(itemToCheck);
+          const isVid = isVideoFile(itemToCheck);
+
+          return (
+            <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+              <DialogContent className="sm:max-w-[85vw] w-full max-h-[90vh] flex flex-col p-6">
+                <DialogHeader className="flex flex-row items-center justify-between border-b pb-3 border-border">
+                  <div>
+                    <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                      {isImg ? (
+                        <ImageIcon className="h-5 w-5 text-emerald-500" />
+                      ) : isVid ? (
+                        <Video className="h-5 w-5 text-blue-500" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-primary" />
+                      )}
+                      {previewFile.name}
+                    </DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Uploaded by <span className="font-semibold text-foreground">{previewFile.item?.uploadedBy || "Admin"}</span>
+                    </p>
                   </div>
-                ) : previewFile.item && isVideoFile(previewFile.item) ? (
-                  <video 
-                    controls 
-                    autoPlay 
-                    src={previewFile.url} 
-                    className="max-h-[75vh] w-full bg-black object-contain"
-                  />
-                ) : (
-                  <iframe
-                    className="h-full w-full bg-card"
-                    src={previewFile.url}
-                    title={previewFile.name}
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+                  <div className="flex items-center gap-2 pr-6">
+                    <a href={previewFile.url} download={previewFile.name} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                        <Download className="h-4 w-4" /> Download File
+                      </Button>
+                    </a>
+                  </div>
+                </DialogHeader>
+                <div className="flex-1 mt-4 aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted shadow-inner flex items-center justify-center">
+                  {isImg ? (
+                    <div className="flex items-center justify-center p-4 w-full h-full bg-black/40 overflow-auto">
+                      <img 
+                        src={previewFile.url} 
+                        alt={previewFile.name} 
+                        className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain mx-auto shadow-2xl" 
+                      />
+                    </div>
+                  ) : isVid ? (
+                    <video 
+                      controls 
+                      autoPlay 
+                      src={previewFile.url} 
+                      className="max-h-[75vh] w-full bg-black object-contain"
+                    />
+                  ) : previewFile.url ? (
+                    <iframe
+                      className="h-full w-full bg-card border-0"
+                      src={previewFile.url}
+                      title={previewFile.name}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+                      <FileText className="h-12 w-12 text-muted-foreground" />
+                      <p className="text-sm font-medium text-foreground">File preview not available directly in browser.</p>
+                      <a href={previewFile.url} download={previewFile.name}>
+                        <Button size="sm" variant="outline">Download File</Button>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
       </div>
     </Protected>
   );
