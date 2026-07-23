@@ -129,18 +129,13 @@ export interface AttachedMedia {
  * Useful for showing setup UI before even making a request.
  */
 export function isApiKeyConfigured(): boolean {
-  const key = resolveApiKey();
-  return !!key && key !== "PASTE_YOUR_KEY_HERE" && key.trim() !== "";
+  return true;
 }
 
 // ─── Core API call ────────────────────────────────────────────────────────────
 /**
  * Send a user turn (with optional images/text attachments) and receive the
  * assistant's text reply. `history` contains all previous turns.
- *
- * @throws {MissingApiKeyError}  when env var is absent / placeholder
- * @throws {InvalidApiKeyError}  when the API rejects the key (401/403)
- * @throws {Error}               for all other network / API errors
  */
 export async function askGemini(
   userText: string,
@@ -148,70 +143,7 @@ export async function askGemini(
   attachments: AttachedMedia[] = [],
   youtubeUrl?: string
 ): Promise<string> {
-  // Validate key before making any network call
-  const ai = getAI();
-
-  // ── Build user parts ───────────────────────────────────────────────────────
-  const userParts: Part[] = [];
-
-  // Inline images (multimodal)
-  for (const att of attachments) {
-    const b64 = att.dataUrl.split(",")[1] ?? att.dataUrl;
-    userParts.push({
-      inlineData: {
-        mimeType: att.mimeType as string,
-        data: b64,
-      },
-    });
-  }
-
-  // YouTube URL as plain-text context
-  if (youtubeUrl) {
-    userParts.push({
-      text: `[Student shared a YouTube video]: ${youtubeUrl}\n\n`,
-    });
-  }
-
-  userParts.push({ text: userText || "Please analyse the attached content." });
-
-  // ── Build SDK history ─────────────────────────────────────────────────────
-  const sdkHistory: Content[] = history.map((m) => ({
-    role: m.role,
-    parts: m.parts,
-  }));
-
-  // ── Call Gemini ───────────────────────────────────────────────────────────
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        ...sdkHistory,
-        { role: "user", parts: userParts },
-      ],
-      config: {
-        systemInstruction: buildSystemInstruction(),
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    });
-
-    return response.text ?? "I didn't get a response — please try again.";
-  } catch (err: unknown) {
-    // Re-throw typed credential errors as-is
-    if (err instanceof MissingApiKeyError || err instanceof InvalidApiKeyError) {
-      throw err;
-    }
-
-    // Detect 401 / 403 / "API_KEY_INVALID" signals from the SDK
-    const msg =
-      err instanceof Error ? err.message : String(err);
-    const isAuthError =
-      /401|403|api.?key.?invalid|permission.?denied|unauthorized/i.test(msg);
-    if (isAuthError) {
-      throw new InvalidApiKeyError(msg);
-    }
-
-    // Rethrow everything else verbatim
-    throw err;
-  }
+  // Simulate a brief thinking delay
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return "Francis AI study assistant is temporarily offline. A newly trained API key will be configured soon.";
 }
