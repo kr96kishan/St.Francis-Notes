@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -10,6 +10,7 @@ import {
   Flame,
   Layers,
   Link2,
+  Menu,
   MessageSquare,
   Mic,
   Play,
@@ -22,6 +23,7 @@ import {
   X,
   Youtube,
   Zap,
+  Inbox,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -70,163 +72,128 @@ type ChatMsg = {
   citations?: string[];
 };
 
-// ─── Mock Data ───────────────────────────────────────────────────
-const initialSources: Source[] = [
-  {
-    id: "s1",
-    kind: "pdf",
-    title: "Unit 1: Fundamentals.pdf",
-    meta: "24 pages · 1.8 MB",
-    summary:
-      "Covers foundational CS concepts: data representation, algorithms basics, complexity notations, and problem-solving strategies used across the semester.",
-    tags: ["Data Structures", "Algorithms", "Complexity", "Foundations"],
-    units: [
-      { id: "u1", title: "Unit 1: Data Representation", brief: "Binary, hex, encoding schemes." },
-      { id: "u2", title: "Unit 2: Algorithms Basics", brief: "Sorting, searching, big-O." },
-      { id: "u3", title: "Unit 3: Problem Solving", brief: "Decomposition & pseudocode." },
-    ],
-  },
-  {
-    id: "s2",
-    kind: "video",
-    title: "Lecture 1: Intro",
-    meta: "YouTube · 18:42",
-    summary:
-      "Introductory lecture walking through the semester roadmap, expectations, and a live demonstration of algorithmic thinking with a small sorting example.",
-    tags: ["Introduction", "Roadmap", "Sorting"],
-    units: [
-      { id: "u1", title: "Chapter 1: Overview", brief: "Course outline & goals." },
-      { id: "u2", title: "Chapter 2: Live Demo", brief: "Bubble sort walkthrough." },
-    ],
-  },
-];
-
-const initialNotes: Note[] = [
-  {
-    id: "n1",
-    title: "Big-O Cheatsheet",
-    body:
-      "# Big-O Cheatsheet\n\n- **O(1)** constant\n- **O(log n)** binary search\n- **O(n)** linear scan\n- **O(n log n)** merge sort\n- **O(n²)** bubble sort\n\nComplexity :: Growth rate of runtime as input size grows.",
-  },
-];
-
-const initialCards: Flashcard[] = [
-  { id: "c1", front: "Big-O of binary search?", back: "O(log n)", ease: 2.5, due: 0 },
-  { id: "c2", front: "Data structure with LIFO order?", back: "Stack", ease: 2.5, due: 0 },
-  { id: "c3", front: "Data structure with FIFO order?", back: "Queue", ease: 2.5, due: 0 },
-  { id: "c4", front: "Best-case time complexity of merge sort?", back: "O(n log n)", ease: 2.5, due: 0 },
-];
-
-const mockQuiz = [
-  {
-    q: "Which sorting algorithm has O(n log n) average complexity?",
-    options: ["Bubble Sort", "Merge Sort", "Selection Sort", "Insertion Sort"],
-    answer: 1,
-  },
-  {
-    q: "A stack follows which order?",
-    options: ["FIFO", "LIFO", "Random", "Priority"],
-    answer: 1,
-  },
-  {
-    q: "Binary search requires the array to be:",
-    options: ["Unsorted", "Sorted", "Empty", "Reversed"],
-    answer: 1,
-  },
-];
-
-// ─── Utility: mock AI reply ─────────────────────────────────────
-function mockAiReply(prompt: string, grounded: boolean, sources: Source[]): ChatMsg {
-  const s = sources[0];
-  const cite = grounded && s
-    ? s.kind === "pdf"
-      ? [`[${s.title} · Page 4]`]
-      : [`[${s.title} @ 03:15]`]
-    : undefined;
-  let text = "";
+// ─── AI Reply (offline stub — replace with real API when key is added) ─────────
+function offlineReply(prompt: string, sources: Source[]): ChatMsg {
+  const hasContent = sources.length > 0;
   const p = prompt.toLowerCase();
-  if (p.includes("summar")) {
+  let text = "";
+
+  if (!hasContent) {
     text =
-      "**Summary of Unit 1:**\n\n• Data representation covers how numbers and characters are stored in memory.\n• Algorithm basics introduce sorting and searching primitives.\n• Complexity notation (Big-O) is used to compare algorithm efficiency.\n\nKey takeaway: efficiency matters as input sizes scale.";
-  } else if (p.includes("exam") || p.includes("question")) {
+      "📂 No sources uploaded yet! Please upload a PDF or add a YouTube URL from the left panel first — I'll analyse it and answer questions based on that content.";
+  } else if (p.includes("summar")) {
+    const s = sources[0];
+    text = `**Summary of "${s.title}":**\n\n${s.summary}\n\n**Key Tags:** ${s.tags.join(", ")}`;
+  } else if (p.includes("flashcard") || p.includes("flash")) {
     text =
-      "**5 Exam Questions:**\n\n1. Define time complexity and give an example.\n2. Explain the difference between stack and queue.\n3. Write pseudocode for binary search.\n4. Compare bubble sort vs merge sort.\n5. What is the significance of Big-O notation?";
+      "Sure! Click the **→ Flashcards** button below to instantly convert the active source into a study deck. 🃏";
+  } else if (p.includes("exam") || p.includes("question") || p.includes("mcq")) {
+    text =
+      "**Sample Exam Questions:**\n\n1. Define the core concept covered in Unit 1.\n2. Compare and contrast the two main approaches discussed.\n3. Write pseudocode for the algorithm explained in the lecture.\n4. What are the real-world applications mentioned in the source?\n5. Explain the significance of the key terms highlighted.";
   } else if (p.includes("explain")) {
     text =
-      "Sure — think of it this way: an algorithm is just a recipe. Big-O tells you how the cooking time grows if you invite more guests. O(n) means twice the guests, twice the time. O(n²) means twice the guests, four times the time. 🧠";
+      "Great question! Based on the uploaded source, let me break this down step by step. Think of it as a recipe — each unit builds on the previous one. 🧠 Would you like me to go deeper on any specific part?";
   } else {
-    text = grounded
-      ? "Based on your uploaded sources, here's a focused answer drawing from Unit 1 fundamentals and the intro lecture. The core idea revolves around efficient computation and structured problem solving."
-      : "Great question! Here's a general explanation drawing on common CS knowledge. Let me know if you want me to ground this in your uploaded sources.";
+    const s = sources[0];
+    text = `Based on "${s.title}", here's what I found:\n\n${s.summary}\n\nFeel free to ask me to summarize, generate exam questions, or explain any concept from your uploaded sources!`;
   }
-  return { id: crypto.randomUUID(), role: "assistant", text, citations: cite };
+
+  return { id: crypto.randomUUID(), role: "assistant", text };
 }
 
 // ─── Main ───────────────────────────────────────────────────────
 function WorkspacePage() {
   const navigate = useNavigate();
-  const [sources, setSources] = useState<Source[]>(initialSources);
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
-  const [cards, setCards] = useState<Flashcard[]>(initialCards);
-  const [activeSourceId, setActiveSourceId] = useState<string>(initialSources[0].id);
+
+  // ── State ──
+  const [sources, setSources] = useState<Source[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [centerMode, setCenterMode] = useState<"source" | "note" | "flashcards" | "quiz" | "tutor">("source");
-  const [assistantOpen, setAssistantOpen] = useState(true);
-  const [grounded, setGrounded] = useState(true);
-  const [streak, setStreak] = useState(7);
+  const [centerMode, setCenterMode] = useState<"empty" | "source" | "note" | "flashcards" | "quiz" | "tutor">("empty");
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [streak] = useState(0);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: "m0",
       role: "assistant",
-      text: "Hi! I'm your source-grounded study assistant. Ask me anything about your uploaded PDFs or videos.",
+      text: "👋 Hi! I'm Francis AI — your personal study assistant.\n\nUpload a PDF or add a YouTube link from the panel on the left to get started. I'll read the content and help you study smarter! 📚",
     },
   ]);
 
-  const activeSource = sources.find((s) => s.id === activeSourceId)!;
-  const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
-
-  // Upload source (mock)
   const [uploadUrl, setUploadUrl] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function addPdfMock(file: File) {
+  const activeSource = sources.find((s) => s.id === activeSourceId) ?? null;
+  const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
+
+  // Open assistant panel on first source upload
+  useEffect(() => {
+    if (sources.length === 1) {
+      setAssistantOpen(true);
+    }
+  }, [sources.length]);
+
+  // ── Handlers ──
+  function addPdfSource(file: File) {
     const src: Source = {
       id: crypto.randomUUID(),
       kind: "pdf",
       title: file.name,
-      meta: `${Math.max(1, Math.round(file.size / 1024))} KB`,
-      summary: "Auto-generated summary: this document covers key concepts across multiple units. AI extraction complete.",
-      tags: ["Auto-tagged", "Study Material"],
+      meta: `${Math.max(1, Math.round(file.size / 1024))} KB · PDF`,
+      summary: `Document "${file.name}" has been uploaded. Ask me to summarize it, generate flashcards, or create exam questions!`,
+      tags: ["PDF", "Study Material"],
       units: [
-        { id: "u1", title: "Unit 1: Overview", brief: "Introductory concepts." },
-        { id: "u2", title: "Unit 2: Details", brief: "Deeper dive." },
+        { id: "u1", title: "Unit Overview", brief: "Full document content available." },
       ],
     };
     setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
     setCenterMode("source");
-    toast.success("Source added — AI analysis complete");
+    setSidebarOpen(false);
+    toast.success(`"${file.name}" added — ready to analyze!`);
+    setMessages((m) => [
+      ...m,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: `📄 Got it! I've loaded **"${file.name}"**. You can now ask me to:\n- Summarize it\n- Generate exam questions\n- Create flashcards\n- Explain any concept from it`,
+      },
+    ]);
   }
 
-  function addYoutubeMock() {
+  function addYoutubeSource() {
     if (!uploadUrl.trim()) return;
+    const url = uploadUrl.trim();
+    const ytMatch = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = ytMatch?.[1];
     const src: Source = {
       id: crypto.randomUUID(),
       kind: "video",
-      title: `Video: ${uploadUrl.slice(0, 32)}${uploadUrl.length > 32 ? "…" : ""}`,
-      meta: "YouTube · auto-detected",
-      summary: "Auto-generated transcript summary: the speaker covers foundational topics with practical examples throughout the lecture.",
-      tags: ["Video", "Lecture"],
+      title: `Video: ${url.slice(0, 40)}${url.length > 40 ? "…" : ""}`,
+      meta: `YouTube · ${videoId ? "Linked" : "URL added"}`,
+      summary: `YouTube video "${url}" has been linked. Ask me to summarize the lecture or generate study questions based on the topic!`,
+      tags: ["YouTube", "Video Lecture"],
       units: [
-        { id: "u1", title: "Chapter 1: Intro", brief: "Opening remarks." },
-        { id: "u2", title: "Chapter 2: Core Content", brief: "Main lesson." },
+        { id: "u1", title: "Lecture Content", brief: "Full video linked and ready." },
       ],
     };
     setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
     setCenterMode("source");
     setUploadUrl("");
-    toast.success("Video linked — transcript analyzed");
+    setSidebarOpen(false);
+    toast.success("YouTube video linked!");
+    setMessages((m) => [
+      ...m,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: `🎬 YouTube video linked! Ask me anything about its content — I can summarize it, generate quiz questions, or create flashcards from the lecture. 🎓`,
+      },
+    ]);
   }
 
   function sendMessage(text: string) {
@@ -234,13 +201,16 @@ function WorkspacePage() {
     const user: ChatMsg = { id: crypto.randomUUID(), role: "user", text };
     setMessages((m) => [...m, user]);
     setTimeout(() => {
-      setMessages((m) => [...m, mockAiReply(text, grounded, sources)]);
-    }, 600);
+      setMessages((m) => [...m, offlineReply(text, sources)]);
+    }, 700);
   }
 
   function convertToFlashcards() {
-    const s = activeSource;
-    const newCards: Flashcard[] = s.units.map((u) => ({
+    if (!activeSource) {
+      toast.error("Upload a source first before converting to flashcards.");
+      return;
+    }
+    const newCards: Flashcard[] = activeSource.units.map((u) => ({
       id: crypto.randomUUID(),
       front: `What does "${u.title}" cover?`,
       back: u.brief,
@@ -248,37 +218,57 @@ function WorkspacePage() {
       due: 0,
     }));
     setCards((c) => [...newCards, ...c]);
-    toast.success(`Added ${newCards.length} flashcards from ${s.title}`);
+    setCenterMode("flashcards");
+    toast.success(`${newCards.length} flashcard(s) added!`);
   }
 
+  // ─── Layout ──────────────────────────────────────────────────────────────────
   return (
     <div className="dark min-h-screen bg-slate-950 text-slate-100">
-      {/* Top Nav */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
-        <div className="flex h-14 items-center gap-3 px-4">
+      {/* ── Top Nav ── */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur-xl">
+        <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
+          {/* Mobile: hamburger for sidebar */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate({ to: "/" })}
-            className="gap-2 text-slate-300 hover:bg-white/5 hover:text-white"
+            className="gap-2 text-slate-300 hover:bg-white/5 hover:text-white px-2"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back</span>
           </Button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+
+          <div className="flex items-center gap-2 ml-1">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0">
               <Brain className="h-4 w-4 text-white" />
             </div>
             <div className="hidden sm:block">
               <div className="text-sm font-semibold">AI Study Workspace</div>
-              <div className="text-[10px] text-slate-400">Computer Science — Semester 2</div>
+              <div className="text-[10px] text-slate-400">St. Francis Notes · BCA</div>
             </div>
           </div>
+
           <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 text-xs font-medium text-orange-300">
-              <Flame className="h-3.5 w-3.5" />
-              <span>{streak} day streak</span>
-            </div>
+            {streak > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 text-xs font-medium text-orange-300">
+                <Flame className="h-3.5 w-3.5" />
+                <span>{streak} day streak</span>
+              </div>
+            )}
+            {sources.length > 0 && (
+              <Badge variant="secondary" className="hidden sm:flex border-white/10 bg-white/5 text-slate-300 text-[10px]">
+                {sources.length} source{sources.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+            {/* AI Assistant toggle */}
             <Button
               onClick={() => setAssistantOpen((v) => !v)}
               className={`relative gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:from-indigo-400 hover:to-purple-500 ${
@@ -293,10 +283,92 @@ function WorkspacePage() {
         </div>
       </header>
 
-      {/* Main 3-panel layout */}
+      {/* ── Mobile Sidebar Overlay ── */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside className="absolute left-0 top-0 h-full w-72 flex-col border-r border-white/10 bg-slate-900 flex overflow-y-auto">
+            <div className="flex items-center justify-between p-3 border-b border-white/10">
+              <span className="text-sm font-semibold text-white">Sources & Tools</span>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <SourceHub
+              sources={sources}
+              activeSourceId={activeSourceId}
+              onSelectSource={(id) => {
+                setActiveSourceId(id);
+                setCenterMode("source");
+                setSidebarOpen(false);
+              }}
+              notes={notes}
+              activeNoteId={activeNoteId}
+              onSelectNote={(id) => {
+                setActiveNoteId(id);
+                setCenterMode("note");
+                setSidebarOpen(false);
+              }}
+              onNewNote={() => {
+                const n: Note = { id: crypto.randomUUID(), title: "Untitled note", body: "" };
+                setNotes((ns) => [n, ...ns]);
+                setActiveNoteId(n.id);
+                setCenterMode("note");
+                setSidebarOpen(false);
+              }}
+              onOpenFlashcards={() => { setCenterMode("flashcards"); setSidebarOpen(false); }}
+              onOpenQuiz={() => { setCenterMode("quiz"); setSidebarOpen(false); }}
+              onOpenTutor={() => { setCenterMode("tutor"); setSidebarOpen(false); }}
+              uploadUrl={uploadUrl}
+              setUploadUrl={setUploadUrl}
+              onAddPdf={() => fileRef.current?.click()}
+              onAddYoutube={addYoutubeSource}
+              cardsCount={cards.length}
+            />
+          </aside>
+        </div>
+      )}
+
+      {/* ── Mobile AI Assistant Full-screen Overlay ── */}
+      {assistantOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setAssistantOpen(false)}
+          />
+          <aside className="absolute right-0 top-0 h-full w-full max-w-sm flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur-xl flex">
+            <AssistantPanel
+              sources={sources}
+              messages={messages}
+              onSend={sendMessage}
+              onClose={() => setAssistantOpen(false)}
+              onQuickAction={sendMessage}
+              onConvertToFlashcards={convertToFlashcards}
+              onCreateQuiz={() => {
+                if (sources.length === 0) {
+                  toast.error("Upload a source first before creating a quiz!");
+                  return;
+                }
+                setCenterMode("quiz");
+                setAssistantOpen(false);
+                toast.success("Quiz opened in canvas");
+              }}
+              activeSourceTitle={activeSource?.title ?? null}
+            />
+          </aside>
+        </div>
+      )}
+
+      {/* ── Main 3-panel layout ── */}
       <div className="flex h-[calc(100vh-3.5rem)]">
-        {/* Left Sidebar */}
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-white/10 bg-slate-900/40 lg:flex">
+        {/* Left Sidebar — desktop only */}
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-white/10 bg-slate-900/40 lg:flex overflow-y-auto">
           <SourceHub
             sources={sources}
             activeSourceId={activeSourceId}
@@ -317,31 +389,60 @@ function WorkspacePage() {
               setCenterMode("note");
             }}
             onOpenFlashcards={() => setCenterMode("flashcards")}
-            onOpenQuiz={() => setCenterMode("quiz")}
-            onOpenTutor={() => setCenterMode("tutor")}
+            onOpenQuiz={() => {
+              if (sources.length === 0) {
+                toast.error("Upload a source first!");
+                return;
+              }
+              setCenterMode("quiz");
+            }}
+            onOpenTutor={() => {
+              if (sources.length === 0) {
+                toast.error("Upload a source first!");
+                return;
+              }
+              setCenterMode("tutor");
+            }}
             uploadUrl={uploadUrl}
             setUploadUrl={setUploadUrl}
             onAddPdf={() => fileRef.current?.click()}
-            onAddYoutube={addYoutubeMock}
+            onAddYoutube={addYoutubeSource}
             cardsCount={cards.length}
           />
           <input
             ref={fileRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,video/*,.pdf"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) addPdfMock(f);
+              if (f) addPdfSource(f);
               e.target.value = "";
             }}
           />
         </aside>
 
+        {/* Hidden file input for mobile sidebar */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf,video/*,.pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) addPdfSource(f);
+            e.target.value = "";
+          }}
+        />
+
         {/* Center Canvas */}
         <main className="flex-1 overflow-y-auto">
-          {centerMode === "source" && (
-            <SourceViewer source={activeSource} onConvertToFlashcards={convertToFlashcards} />
+          {centerMode === "empty" && <EmptyCanvas onAddPdf={() => fileRef.current?.click()} onAddYoutube={() => setSidebarOpen(true)} />}
+          {centerMode === "source" && activeSource && (
+            <SourceViewer
+              source={activeSource}
+              onConvertToFlashcards={convertToFlashcards}
+            />
           )}
           {centerMode === "note" && activeNote && (
             <NoteEditor
@@ -354,7 +455,7 @@ function WorkspacePage() {
               }
               onExtractCards={(newCards) => {
                 setCards((c) => [...newCards, ...c]);
-                toast.success(`Extracted ${newCards.length} flashcards from note`);
+                toast.success(`Extracted ${newCards.length} flashcard(s) from note`);
               }}
             />
           )}
@@ -373,32 +474,32 @@ function WorkspacePage() {
                       : c,
                   ),
                 );
-                setStreak((s) => s + (rating >= 2 ? 0 : 0));
               }}
             />
           )}
-          {centerMode === "quiz" && <QuizMode />}
-          {centerMode === "tutor" && <TutorMode source={activeSource} />}
+          {centerMode === "quiz" && sources.length > 0 && activeSource && <QuizMode source={activeSource} />}
+          {centerMode === "tutor" && activeSource && <TutorMode source={activeSource} />}
         </main>
 
-        {/* Right AI Drawer */}
+        {/* Right AI Panel — desktop */}
         {assistantOpen && (
           <aside className="hidden w-96 shrink-0 flex-col border-l border-white/10 bg-slate-900/60 backdrop-blur-xl md:flex">
             <AssistantPanel
-              grounded={grounded}
-              setGrounded={setGrounded}
+              sources={sources}
               messages={messages}
               onSend={sendMessage}
               onClose={() => setAssistantOpen(false)}
-              onQuickAction={(action) => {
-                sendMessage(action);
-              }}
+              onQuickAction={sendMessage}
               onConvertToFlashcards={convertToFlashcards}
               onCreateQuiz={() => {
+                if (sources.length === 0) {
+                  toast.error("Upload a source first before creating a quiz!");
+                  return;
+                }
                 setCenterMode("quiz");
                 toast.success("Quiz opened in canvas");
               }}
-              activeSourceTitle={activeSource.title}
+              activeSourceTitle={activeSource?.title ?? null}
             />
           </aside>
         )}
@@ -407,10 +508,44 @@ function WorkspacePage() {
   );
 }
 
+// ─── Empty Canvas ────────────────────────────────────────────────
+function EmptyCanvas({ onAddPdf, onAddYoutube }: { onAddPdf: () => void; onAddYoutube: () => void }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-indigo-500/20 mb-6">
+        <Inbox className="h-9 w-9 text-indigo-300" />
+      </div>
+      <h2 className="text-2xl font-bold text-white mb-2">No Sources Yet</h2>
+      <p className="text-sm text-slate-400 max-w-sm mb-8">
+        Upload a PDF or link a YouTube lecture to get started. Francis AI will read and analyze it, then help you study smarter.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={onAddPdf}
+          className="flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-5 py-3 text-sm font-medium text-indigo-200 hover:bg-indigo-500/20 transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          Upload PDF
+        </button>
+        <button
+          onClick={onAddYoutube}
+          className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-medium text-red-200 hover:bg-red-500/20 transition-colors"
+        >
+          <Youtube className="h-4 w-4" />
+          Add YouTube Video
+        </button>
+      </div>
+      <p className="mt-8 text-xs text-slate-600">
+        💡 On mobile? Tap the <strong className="text-slate-500">☰ menu</strong> at the top-left to open the source panel.
+      </p>
+    </div>
+  );
+}
+
 // ─── Left Sidebar ────────────────────────────────────────────────
 function SourceHub(props: {
   sources: Source[];
-  activeSourceId: string;
+  activeSourceId: string | null;
   onSelectSource: (id: string) => void;
   notes: Note[];
   activeNoteId: string | null;
@@ -428,10 +563,10 @@ function SourceHub(props: {
   return (
     <div className="flex h-full flex-col overflow-y-auto p-3">
       <div className="mb-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1 mb-2">
           Add Source
         </div>
-        <div className="mt-2 space-y-2">
+        <div className="space-y-2">
           <Button
             onClick={props.onAddPdf}
             variant="outline"
@@ -439,16 +574,22 @@ function SourceHub(props: {
             className="w-full justify-start gap-2 border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
           >
             <Upload className="h-4 w-4" />
-            Upload PDF
+            Upload PDF / Video
           </Button>
           <div className="flex gap-1.5">
             <Input
               value={props.uploadUrl}
               onChange={(e) => props.setUploadUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && props.onAddYoutube()}
               placeholder="Paste YouTube URL"
-              className="h-8 border-white/10 bg-white/5 text-xs placeholder:text-slate-500"
+              className="h-8 border-white/10 bg-white/5 text-xs placeholder:text-slate-500 text-slate-100"
             />
-            <Button size="icon" onClick={props.onAddYoutube} className="h-8 w-8 shrink-0 bg-indigo-500 hover:bg-indigo-400">
+            <Button
+              size="icon"
+              onClick={props.onAddYoutube}
+              disabled={!props.uploadUrl.trim()}
+              className="h-8 w-8 shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -456,33 +597,37 @@ function SourceHub(props: {
       </div>
 
       <SidebarSection label="Sources" count={props.sources.length}>
-        {props.sources.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => props.onSelectSource(s.id)}
-            className={`group flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors ${
-              props.activeSourceId === s.id ? "bg-indigo-500/15 ring-1 ring-indigo-500/30" : "hover:bg-white/5"
-            }`}
-          >
-            <div className="mt-0.5 rounded bg-white/5 p-1.5">
-              {s.kind === "pdf" ? (
-                <FileText className="h-3.5 w-3.5 text-rose-300" />
-              ) : (
-                <Youtube className="h-3.5 w-3.5 text-red-400" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-medium text-slate-100">{s.title}</div>
-              <div className="truncate text-[10px] text-slate-500">{s.meta}</div>
-            </div>
-          </button>
-        ))}
+        {props.sources.length === 0 ? (
+          <div className="text-[11px] text-slate-600 px-2 py-2 italic">No sources yet — add one above.</div>
+        ) : (
+          props.sources.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => props.onSelectSource(s.id)}
+              className={`group flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors ${
+                props.activeSourceId === s.id ? "bg-indigo-500/15 ring-1 ring-indigo-500/30" : "hover:bg-white/5"
+              }`}
+            >
+              <div className="mt-0.5 rounded bg-white/5 p-1.5 shrink-0">
+                {s.kind === "pdf" ? (
+                  <FileText className="h-3.5 w-3.5 text-rose-300" />
+                ) : (
+                  <Youtube className="h-3.5 w-3.5 text-red-400" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-medium text-slate-100">{s.title}</div>
+                <div className="truncate text-[10px] text-slate-500">{s.meta}</div>
+              </div>
+            </button>
+          ))
+        )}
       </SidebarSection>
 
       <SidebarSection label="Notes" count={props.notes.length}>
         <button
           onClick={props.onNewNote}
-          className="mb-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-white/10 p-2 text-xs text-slate-400 hover:border-indigo-500/40 hover:text-indigo-300"
+          className="mb-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-white/10 p-2 text-xs text-slate-400 hover:border-indigo-500/40 hover:text-indigo-300 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" /> New note
         </button>
@@ -494,7 +639,7 @@ function SourceHub(props: {
               props.activeNoteId === n.id ? "bg-indigo-500/15 ring-1 ring-indigo-500/30" : "hover:bg-white/5"
             }`}
           >
-            <BookOpen className="h-3.5 w-3.5 text-slate-400" />
+            <BookOpen className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             <span className="truncate text-xs text-slate-200">{n.title}</span>
           </button>
         ))}
@@ -503,7 +648,7 @@ function SourceHub(props: {
       <SidebarSection label="Study Tools">
         <button
           onClick={props.onOpenFlashcards}
-          className="flex w-full items-center justify-between rounded-lg p-2 hover:bg-white/5"
+          className="flex w-full items-center justify-between rounded-lg p-2 hover:bg-white/5 transition-colors"
         >
           <span className="flex items-center gap-2 text-xs text-slate-200">
             <Layers className="h-3.5 w-3.5 text-emerald-400" /> Flashcards
@@ -514,13 +659,13 @@ function SourceHub(props: {
         </button>
         <button
           onClick={props.onOpenQuiz}
-          className="flex w-full items-center gap-2 rounded-lg p-2 text-xs text-slate-200 hover:bg-white/5"
+          className="flex w-full items-center gap-2 rounded-lg p-2 text-xs text-slate-200 hover:bg-white/5 transition-colors"
         >
-          <Target className="h-3.5 w-3.5 text-amber-400" /> Quiz
+          <Target className="h-3.5 w-3.5 text-amber-400" /> Quiz Mode
         </button>
         <button
           onClick={props.onOpenTutor}
-          className="flex w-full items-center gap-2 rounded-lg p-2 text-xs text-slate-200 hover:bg-white/5"
+          className="flex w-full items-center gap-2 rounded-lg p-2 text-xs text-slate-200 hover:bg-white/5 transition-colors"
         >
           <Bot className="h-3.5 w-3.5 text-purple-400" /> Practice & Challenge
         </button>
@@ -554,12 +699,12 @@ function SidebarSection({
 // ─── Source Viewer ──────────────────────────────────────────────
 function SourceViewer({ source, onConvertToFlashcards }: { source: Source; onConvertToFlashcards: () => void }) {
   return (
-    <div className="mx-auto max-w-4xl p-6 sm:p-8">
+    <div className="mx-auto max-w-4xl p-4 sm:p-8">
       <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">
         {source.kind === "pdf" ? <FileText className="h-3.5 w-3.5" /> : <Video className="h-3.5 w-3.5" />}
         <span>{source.meta}</span>
       </div>
-      <h1 className="text-2xl font-bold text-white sm:text-3xl">{source.title}</h1>
+      <h1 className="text-xl font-bold text-white sm:text-3xl break-words">{source.title}</h1>
 
       <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur">
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-300">
@@ -602,32 +747,31 @@ function SourceViewer({ source, onConvertToFlashcards }: { source: Source; onCon
           <Layers className="h-4 w-4" /> Convert to Flashcards
         </Button>
         <Button size="sm" variant="outline" className="gap-2 border-white/10 bg-white/5 text-slate-200 hover:bg-white/10">
-          <Zap className="h-4 w-4" /> Generate Audio Summary
+          <Zap className="h-4 w-4" /> Generate Summary
         </Button>
       </div>
 
-      {/* Fake reader area */}
+      {/* Content Preview */}
       <div className="mt-6 rounded-xl border border-white/10 bg-slate-900/40 p-5">
         {source.kind === "pdf" ? (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <h3 className="text-white">Preview — Page 1</h3>
-            <p className="text-slate-300">
-              Computer Science fundamentals begin with an understanding of how information is
-              represented and manipulated. Data structures organize information; algorithms
-              transform it.
+          <div className="text-sm text-slate-300 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Document Preview</div>
+            <p>
+              📄 <strong className="text-white">{source.title}</strong> has been successfully loaded.
             </p>
-            <p className="text-slate-300">
-              The efficiency of an algorithm is measured using asymptotic notation, most commonly
-              Big-O. This lets us compare approaches independent of hardware.
+            <p className="text-slate-400">
+              Use the <strong className="text-indigo-300">AI Assistant</strong> on the right (or tap the button at the top) to ask questions, get summaries, or generate study material from this document.
             </p>
           </div>
         ) : (
-          <div className="aspect-video overflow-hidden rounded-lg bg-black/60">
-            <div className="flex h-full items-center justify-center text-slate-400">
-              <div className="text-center">
-                <Play className="mx-auto h-12 w-12 text-indigo-400" />
-                <div className="mt-2 text-sm">Video Preview Placeholder</div>
-              </div>
+          <div className="aspect-video overflow-hidden rounded-lg bg-black/60 flex items-center justify-center">
+            <div className="text-center p-6">
+              <Play className="mx-auto h-12 w-12 text-indigo-400 mb-3" />
+              <div className="text-sm text-slate-300 font-medium">YouTube Video Linked</div>
+              <div className="text-xs text-slate-500 mt-1 break-all max-w-xs">{source.title}</div>
+              <p className="text-xs text-slate-400 mt-3">
+                Ask Francis AI to summarize this video or generate study questions from it!
+              </p>
             </div>
           </div>
         )}
@@ -661,13 +805,13 @@ function NoteEditor({
     onExtractCards(cards);
   }
   return (
-    <div className="mx-auto max-w-4xl p-6 sm:p-8">
+    <div className="mx-auto max-w-4xl p-4 sm:p-8">
       <Input
         value={note.title}
         onChange={(e) => onTitle(e.target.value)}
         className="mb-4 border-none bg-transparent px-0 text-2xl font-bold text-white focus-visible:ring-0"
       />
-      <div className="mb-3 flex gap-2">
+      <div className="mb-3 flex flex-wrap gap-2">
         <Button size="sm" onClick={extract} className="gap-2 bg-emerald-500 text-white hover:bg-emerald-400">
           <Layers className="h-4 w-4" /> Extract Flashcards
         </Button>
@@ -678,7 +822,7 @@ function NoteEditor({
       <Textarea
         value={note.body}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Start writing… supports markdown."
+        placeholder="Start writing… use Concept :: Definition format for flashcard extraction."
         className="min-h-[400px] border-white/10 bg-slate-900/40 font-mono text-sm text-slate-100"
       />
     </div>
@@ -699,8 +843,10 @@ function FlashcardReview({
 
   if (!card) {
     return (
-      <div className="flex h-full items-center justify-center p-8 text-center text-slate-400">
-        No flashcards yet. Convert a source or a note to get started.
+      <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+        <Layers className="h-12 w-12 text-slate-600 mb-4" />
+        <div className="text-slate-400 font-medium mb-1">No flashcards yet</div>
+        <div className="text-xs text-slate-600">Upload a source and click "Convert to Flashcards" to get started.</div>
       </div>
     );
   }
@@ -712,31 +858,29 @@ function FlashcardReview({
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col items-center p-6 sm:p-10">
+    <div className="mx-auto flex max-w-2xl flex-col items-center p-4 sm:p-10">
       <div className="mb-4 flex w-full items-center justify-between text-xs text-slate-400">
-        <span>
-          Card {idx + 1} of {cards.length}
-        </span>
+        <span>Card {idx + 1} of {cards.length}</span>
         <span className="flex items-center gap-1 text-orange-300">
-          <Flame className="h-3 w-3" /> Daily recall streak active
+          <Flame className="h-3 w-3" /> Spaced repetition active
         </span>
       </div>
 
       <button
         onClick={() => setFlipped((f) => !f)}
-        className="group relative flex min-h-[280px] w-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/60 p-8 text-center shadow-xl transition-transform hover:scale-[1.01]"
+        className="group relative flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/60 p-8 text-center shadow-xl transition-transform hover:scale-[1.01] active:scale-[0.99]"
       >
         <div className="text-[10px] uppercase tracking-wider text-slate-500">
           {flipped ? "Answer" : "Question"}
         </div>
-        <div className="mt-3 text-xl font-medium text-white">
+        <div className="mt-3 text-xl font-medium text-white leading-relaxed">
           {flipped ? card.back : card.front}
         </div>
-        <div className="mt-6 text-[10px] text-slate-600">Click to flip</div>
+        <div className="mt-6 text-[10px] text-slate-600">Tap to flip</div>
       </button>
 
       {flipped && (
-        <div className="mt-6 grid w-full grid-cols-4 gap-2">
+        <div className="mt-6 grid w-full grid-cols-2 sm:grid-cols-4 gap-2">
           <Button variant="outline" onClick={() => rate(0)} className="border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20">
             Again
           </Button>
@@ -756,17 +900,37 @@ function FlashcardReview({
 }
 
 // ─── Quiz Mode ──────────────────────────────────────────────────
-function QuizMode() {
+function QuizMode({ source }: { source: Source }) {
+  const quiz = source.units.map((u) => ({
+    q: `What does "${u.title}" cover?`,
+    options: [
+      u.brief,
+      "An unrelated concept",
+      "A completely different topic",
+      "None of the above",
+    ],
+    answer: 0,
+  }));
+
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
-  const q = mockQuiz[idx];
+
+  if (quiz.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-center text-slate-400">
+        No units in this source to quiz on.
+      </div>
+    );
+  }
+
+  const q = quiz[idx];
 
   function submit() {
     if (selected === null) return;
     if (selected === q.answer) setScore((s) => s + 1);
-    if (idx + 1 >= mockQuiz.length) setDone(true);
+    if (idx + 1 >= quiz.length) setDone(true);
     else {
       setIdx((i) => i + 1);
       setSelected(null);
@@ -777,37 +941,30 @@ function QuizMode() {
     return (
       <div className="mx-auto max-w-xl p-10 text-center">
         <div className="text-5xl">🎯</div>
-        <h2 className="mt-4 text-2xl font-bold text-white">Quiz Complete</h2>
+        <h2 className="mt-4 text-2xl font-bold text-white">Quiz Complete!</h2>
         <div className="mt-2 text-slate-400">
-          Score: {score} / {mockQuiz.length}
+          Score: {score} / {quiz.length}
         </div>
-        <Progress value={(score / mockQuiz.length) * 100} className="mt-6" />
+        <Progress value={(score / quiz.length) * 100} className="mt-6" />
         <Button
           className="mt-6 bg-indigo-500 hover:bg-indigo-400"
-          onClick={() => {
-            setIdx(0);
-            setSelected(null);
-            setScore(0);
-            setDone(false);
-          }}
+          onClick={() => { setIdx(0); setSelected(null); setScore(0); setDone(false); }}
         >
-          Retake
+          Retake Quiz
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6 sm:p-10">
+    <div className="mx-auto max-w-2xl p-4 sm:p-10">
       <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
-        <span>
-          Question {idx + 1} / {mockQuiz.length}
-        </span>
+        <span>Question {idx + 1} / {quiz.length}</span>
         <span>Score: {score}</span>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6">
-        <div className="text-lg font-medium text-white">{q.q}</div>
-        <div className="mt-5 space-y-2">
+      <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-5 sm:p-6">
+        <div className="text-base font-medium text-white mb-5">{q.q}</div>
+        <div className="space-y-2">
           {q.options.map((o, i) => (
             <button
               key={i}
@@ -818,7 +975,7 @@ function QuizMode() {
                   : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
               }`}
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-current text-xs">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-current text-xs shrink-0">
                 {String.fromCharCode(65 + i)}
               </div>
               <span className="text-sm">{o}</span>
@@ -828,9 +985,9 @@ function QuizMode() {
         <Button
           onClick={submit}
           disabled={selected === null}
-          className="mt-6 w-full bg-indigo-500 hover:bg-indigo-400"
+          className="mt-6 w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40"
         >
-          Submit
+          Submit Answer
         </Button>
       </div>
     </div>
@@ -839,10 +996,8 @@ function QuizMode() {
 
 // ─── Tutor / Practice Mode ──────────────────────────────────────
 function TutorMode({ source }: { source: Source }) {
-  const questions = useMemo(
-    () =>
-      source.units.map((u) => `Explain "${u.title}" in your own words — focus on ${u.brief.toLowerCase()}`),
-    [source],
+  const questions = source.units.map(
+    (u) => `Explain "${u.title}" in your own words — focus on: ${u.brief.toLowerCase()}`
   );
   const [qIdx, setQIdx] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -853,7 +1008,7 @@ function TutorMode({ source }: { source: Source }) {
     const len = answer.trim().length;
     setScores({
       clarity: Math.min(100, 40 + Math.round(len / 3)),
-      grounding: Math.min(100, 50 + (answer.toLowerCase().includes(source.title.toLowerCase().split(" ")[0]) ? 30 : 15) + Math.round(len / 20)),
+      grounding: Math.min(100, 50 + Math.round(len / 20) + 15),
       confidence: Math.min(100, 45 + Math.round(len / 4)),
     });
   }
@@ -865,21 +1020,21 @@ function TutorMode({ source }: { source: Source }) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6 sm:p-10">
+    <div className="mx-auto max-w-2xl p-4 sm:p-10">
       <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-purple-300">
         <Bot className="h-3.5 w-3.5" /> Practice & Challenge Mode
       </div>
-      <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6">
-        <div className="text-xs text-slate-400">Interactive Examiner</div>
-        <div className="mt-2 text-lg font-medium text-white">{questions[qIdx]}</div>
+      <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-5 sm:p-6">
+        <div className="text-xs text-slate-400 mb-2">Interactive Examiner · {source.title}</div>
+        <div className="text-base font-medium text-white">{questions[qIdx]}</div>
       </div>
       <Textarea
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
-        placeholder="Type your answer…"
+        placeholder="Type your answer here…"
         className="mt-4 min-h-[140px] border-white/10 bg-slate-900/40 text-sm text-slate-100"
       />
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <Button onClick={evaluate} className="bg-purple-500 hover:bg-purple-400">
           Submit Answer
         </Button>
@@ -911,7 +1066,7 @@ function ScoreBar({ label, value, color }: { label: string; value: number; color
         <span className="text-slate-400">{value}%</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-white/5">
-        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${value}%` }} />
+        <div className={`h-full ${color} transition-all duration-700`} style={{ width: `${value}%` }} />
       </div>
     </div>
   );
@@ -919,8 +1074,7 @@ function ScoreBar({ label, value, color }: { label: string; value: number; color
 
 // ─── Assistant Panel ────────────────────────────────────────────
 function AssistantPanel({
-  grounded,
-  setGrounded,
+  sources,
   messages,
   onSend,
   onClose,
@@ -929,18 +1083,18 @@ function AssistantPanel({
   onCreateQuiz,
   activeSourceTitle,
 }: {
-  grounded: boolean;
-  setGrounded: (v: boolean) => void;
+  sources: Source[];
   messages: ChatMsg[];
   onSend: (text: string) => void;
   onClose: () => void;
   onQuickAction: (action: string) => void;
   onConvertToFlashcards: () => void;
   onCreateQuiz: () => void;
-  activeSourceTitle: string;
+  activeSourceTitle: string | null;
 }) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasContent = sources.length > 0;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -955,49 +1109,50 @@ function AssistantPanel({
 
   return (
     <div className="flex h-full flex-col">
+      {/* Header */}
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0">
           <Sparkles className="h-4 w-4 text-white" />
         </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold text-white">AI Assistant</div>
-          <div className="text-[10px] text-slate-400">
-            {grounded ? `Grounded in: ${activeSourceTitle}` : "General mode"}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white">Francis AI</div>
+          <div className="text-[10px] text-slate-400 truncate">
+            {hasContent
+              ? activeSourceTitle
+                ? `Analysing: ${activeSourceTitle}`
+                : `${sources.length} source(s) loaded`
+              : "Waiting for content…"}
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-slate-400 hover:bg-white/5">
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-slate-400 hover:bg-white/5 shrink-0">
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="border-b border-white/10 px-4 py-2.5">
-        <label className="flex cursor-pointer items-center justify-between text-xs">
-          <span className="flex items-center gap-2 text-slate-300">
-            <Link2 className="h-3.5 w-3.5" /> Source Grounding
-          </span>
-          <button
-            onClick={() => setGrounded(!grounded)}
-            className={`relative h-5 w-9 rounded-full transition-colors ${
-              grounded ? "bg-indigo-500" : "bg-white/10"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                grounded ? "translate-x-4" : "translate-x-0.5"
-              }`}
-            />
-          </button>
-        </label>
-      </div>
+      {/* Status bar — no content warning */}
+      {!hasContent && (
+        <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2">
+          <div className="flex items-center gap-2 text-xs text-amber-300">
+            <Link2 className="h-3.5 w-3.5 shrink-0" />
+            <span>Upload a source to enable AI analysis</span>
+          </div>
+        </div>
+      )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3">
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.map((m) => (
-          <div key={m.id} className={`mb-3 flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            {m.role === "assistant" && (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mr-2 mt-1">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            )}
             <div
               className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
                 m.role === "user"
-                  ? "bg-indigo-500 text-white"
-                  : "border border-white/10 bg-white/5 text-slate-100"
+                  ? "bg-indigo-500 text-white rounded-br-sm"
+                  : "border border-white/10 bg-white/5 text-slate-100 rounded-bl-sm"
               }`}
             >
               <div className="whitespace-pre-wrap leading-relaxed">{m.text}</div>
@@ -1015,48 +1170,58 @@ function AssistantPanel({
         ))}
       </div>
 
+      {/* Quick Actions + Input */}
       <div className="border-t border-white/10 px-3 py-2">
-        <div className="mb-2 flex flex-wrap gap-1">
-          {[
-            { label: "Summarize Unit 1", icon: Sparkles },
-            { label: "Generate 5 exam questions", icon: Target },
-            { label: "Explain in simple terms", icon: MessageSquare },
-          ].map((a) => (
+        {/* Quick prompts — only shown when content is available */}
+        {hasContent && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {[
+              { label: "Summarize this", icon: Sparkles },
+              { label: "Generate 5 exam questions", icon: Target },
+              { label: "Explain in simple terms", icon: MessageSquare },
+            ].map((a) => (
+              <button
+                key={a.label}
+                onClick={() => onQuickAction(a.label)}
+                className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <a.icon className="h-3 w-3" />
+                {a.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Action buttons — only when content is available */}
+        {hasContent && (
+          <div className="mb-2 flex gap-1">
             <button
-              key={a.label}
-              onClick={() => onQuickAction(a.label)}
-              className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-white/10 hover:text-white"
+              onClick={onConvertToFlashcards}
+              className="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition-colors"
             >
-              <a.icon className="h-3 w-3" />
-              {a.label}
+              → Flashcards
             </button>
-          ))}
-        </div>
-        <div className="mb-2 flex gap-1">
-          <button
-            onClick={onConvertToFlashcards}
-            className="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20"
-          >
-            → Flashcards
-          </button>
-          <button
-            onClick={onCreateQuiz}
-            className="flex-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20"
-          >
-            → Quiz
-          </button>
-          <button className="flex-1 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1.5 text-[11px] font-medium text-sky-300 hover:bg-sky-500/20">
-            → Audio
-          </button>
-        </div>
+            <button
+              onClick={onCreateQuiz}
+              className="flex-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20 transition-colors"
+            >
+              → Quiz
+            </button>
+          </div>
+        )}
+
         <form onSubmit={submit} className="flex gap-1.5">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask your sources…"
-            className="h-9 border-white/10 bg-white/5 text-sm placeholder:text-slate-500"
+            placeholder={hasContent ? "Ask about your sources…" : "Upload a source first…"}
+            className="h-9 border-white/10 bg-white/5 text-sm placeholder:text-slate-500 text-slate-100"
           />
-          <Button type="submit" size="icon" className="h-9 w-9 shrink-0 bg-indigo-500 hover:bg-indigo-400">
+          <Button
+            type="submit"
+            size="icon"
+            className="h-9 w-9 shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </form>
