@@ -66,17 +66,18 @@ function SubjectPage() {
   }
 
   // Filter syllabus units/chapters (matches chapter title or any topic title/content inside it)
-  const filteredChapters = sub.chapters.filter((ch) => {
+  const filteredChapters = sub.chapters.filter((ch: typeof sub.chapters[number]) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
     const chMatch = ch.title.toLowerCase().includes(query);
     const topicMatch = ch.topics.some(
-      (t) =>
+      (t: typeof ch.topics[number]) =>
         t.title.toLowerCase().includes(query) ||
         t.content.toLowerCase().includes(query),
     );
     return chMatch || topicMatch;
   });
+
 
   // Filter general custom topics
   const filteredCustomTopics = subCustomTopics.filter((topic) => {
@@ -132,7 +133,7 @@ function SubjectPage() {
                   Syllabus Units
                 </h2>
                 {filteredChapters.map((ch: typeof sub.chapters[number], i: number) => {
-                  const originalIndex = sub.chapters.findIndex((c) => c.id === ch.id);
+                  const originalIndex = sub.chapters.findIndex((c: typeof sub.chapters[number]) => c.id === ch.id);
                   return (
                     <button
                       key={ch.id}
