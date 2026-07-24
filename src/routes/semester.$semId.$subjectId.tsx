@@ -133,7 +133,7 @@ function SubjectPage() {
                   Syllabus Units
                 </h2>
                 {filteredChapters.map((ch: typeof sub.chapters[number], i: number) => {
-                  const originalIndex = sub.chapters.findIndex((c) => c.id === ch.id);
+                  const originalIndex = sub.chapters.findIndex((c: typeof sub.chapters[number]) => c.id === ch.id);
                   return (
                     <button
                       key={ch.id}
