@@ -1174,12 +1174,33 @@ function AssistantPanel({
         </Button>
       </div>
 
+      {/* Grounding toggle */}
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <Target className="h-3 w-3" />
+          Source Grounding
+        </div>
+        <button
+          onClick={onToggleGrounding}
+          className={`relative h-4 w-8 rounded-full transition-colors ${
+            groundingOnly ? "bg-emerald-500" : "bg-slate-600"
+          }`}
+          aria-label="Toggle source grounding"
+        >
+          <span
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${
+              groundingOnly ? "translate-x-4" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
       {/* Status bar — no content warning */}
       {!hasContent && (
         <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2">
           <div className="flex items-center gap-2 text-xs text-amber-300">
             <Link2 className="h-3.5 w-3.5 shrink-0" />
-            <span>Upload a source to enable AI analysis</span>
+            <span>I can still help using my syllabus knowledge — upload a source for richer grounded answers.</span>
           </div>
         </div>
       )}
@@ -1213,6 +1234,20 @@ function AssistantPanel({
             </div>
           </div>
         ))}
+        {sending && (
+          <div className="flex justify-start">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mr-2 mt-1">
+              <Sparkles className="h-3 w-3 text-white" />
+            </div>
+            <div className="rounded-2xl rounded-bl-sm border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-slate-300">
+              <span className="inline-flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400 [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400 [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400" />
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Actions + Input */}
