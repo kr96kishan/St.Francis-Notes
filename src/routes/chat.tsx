@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { askAssistant } from "@/lib/ai-assistant.functions";
 import {
   ArrowLeft,
   Bot,
@@ -62,6 +64,10 @@ type Source = {
   summary: string;
   tags: string[];
   units: { id: string; title: string; brief: string }[];
+  /** For PDFs: base64 data URL. Optional; used for AI multimodal input. */
+  dataUrl?: string;
+  /** For YouTube/local video: source URL. */
+  url?: string;
 };
 type Note = { id: string; title: string; body: string };
 type Flashcard = { id: string; front: string; back: string; ease: number; due: number };
@@ -72,34 +78,6 @@ type ChatMsg = {
   citations?: string[];
 };
 
-// ─── AI Reply (offline stub — replace with real API when key is added) ─────────
-function offlineReply(prompt: string, sources: Source[]): ChatMsg {
-  const hasContent = sources.length > 0;
-  const p = prompt.toLowerCase();
-  let text = "";
-
-  if (!hasContent) {
-    text =
-      "📂 No sources uploaded yet! Please upload a PDF or add a YouTube URL from the left panel first — I'll analyse it and answer questions based on that content.";
-  } else if (p.includes("summar")) {
-    const s = sources[0];
-    text = `**Summary of "${s.title}":**\n\n${s.summary}\n\n**Key Tags:** ${s.tags.join(", ")}`;
-  } else if (p.includes("flashcard") || p.includes("flash")) {
-    text =
-      "Sure! Click the **→ Flashcards** button below to instantly convert the active source into a study deck. 🃏";
-  } else if (p.includes("exam") || p.includes("question") || p.includes("mcq")) {
-    text =
-      "**Sample Exam Questions:**\n\n1. Define the core concept covered in Unit 1.\n2. Compare and contrast the two main approaches discussed.\n3. Write pseudocode for the algorithm explained in the lecture.\n4. What are the real-world applications mentioned in the source?\n5. Explain the significance of the key terms highlighted.";
-  } else if (p.includes("explain")) {
-    text =
-      "Great question! Based on the uploaded source, let me break this down step by step. Think of it as a recipe — each unit builds on the previous one. 🧠 Would you like me to go deeper on any specific part?";
-  } else {
-    const s = sources[0];
-    text = `Based on "${s.title}", here's what I found:\n\n${s.summary}\n\nFeel free to ask me to summarize, generate exam questions, or explain any concept from your uploaded sources!`;
-  }
-
-  return { id: crypto.randomUUID(), role: "assistant", text };
-}
 
 // ─── Main ───────────────────────────────────────────────────────
 function WorkspacePage() {
@@ -119,9 +97,12 @@ function WorkspacePage() {
     {
       id: "m0",
       role: "assistant",
-      text: "👋 Hi! I'm Francis AI — your personal study assistant.\n\nUpload a PDF or add a YouTube link from the panel on the left to get started. I'll read the content and help you study smarter! 📚",
+      text: "👋 Hi! I'm **Francis AI** — your personal study assistant for St. Francis Notes.\n\nI know the full BCA syllabus, and I can also **read any PDF or YouTube video** you drop in the left panel. Try:\n\n• *\"Summarize Unit 1\"*\n• *\"Generate 5 exam questions from this PDF\"*\n• *\"Explain OOP inheritance with an example\"*\n\nLet's ace this. 📚",
     },
   ]);
+  const [sending, setSending] = useState(false);
+  const [groundingOnly, setGroundingOnly] = useState(true);
+  const ask = useServerFn(askAssistant);
 
   const [uploadUrl, setUploadUrl] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,29 +118,49 @@ function WorkspacePage() {
   }, [sources.length]);
 
   // ── Handlers ──
-  function addPdfSource(file: File) {
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function addPdfSource(file: File) {
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    const kind: SourceKind = isPdf ? "pdf" : "video";
+    let dataUrl: string | undefined;
+    try {
+      if (isPdf && file.size < 12 * 1024 * 1024) {
+        dataUrl = await readFileAsDataUrl(file);
+      }
+    } catch {
+      /* ignore */
+    }
     const src: Source = {
       id: crypto.randomUUID(),
-      kind: "pdf",
+      kind,
       title: file.name,
-      meta: `${Math.max(1, Math.round(file.size / 1024))} KB · PDF`,
-      summary: `Document "${file.name}" has been uploaded. Ask me to summarize it, generate flashcards, or create exam questions!`,
-      tags: ["PDF", "Study Material"],
-      units: [
-        { id: "u1", title: "Unit Overview", brief: "Full document content available." },
-      ],
+      meta: `${Math.max(1, Math.round(file.size / 1024))} KB · ${isPdf ? "PDF" : "Video"}`,
+      summary: isPdf
+        ? `PDF "${file.name}" is ready. Ask Francis AI to summarize it, generate exam questions, or create flashcards from it.`
+        : `Video "${file.name}" uploaded. Francis AI can discuss the topic — ask a question to begin.`,
+      tags: [isPdf ? "PDF" : "Video", "Study Material"],
+      units: [{ id: "u1", title: "Full Document", brief: "Complete content available for AI analysis." }],
+      dataUrl,
     };
     setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
     setCenterMode("source");
     setSidebarOpen(false);
-    toast.success(`"${file.name}" added — ready to analyze!`);
+    toast.success(`"${file.name}" ready for AI analysis!`);
     setMessages((m) => [
       ...m,
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: `📄 Got it! I've loaded **"${file.name}"**. You can now ask me to:\n- Summarize it\n- Generate exam questions\n- Create flashcards\n- Explain any concept from it`,
+        text: `📄 Loaded **"${file.name}"**${isPdf && dataUrl ? " — I can read the full contents" : ""}. Try:\n\n• *"Summarize this"*\n• *"Generate 5 exam questions"*\n• *"Explain Unit 1 in simple terms"*`,
       },
     ]);
   }
@@ -174,11 +175,10 @@ function WorkspacePage() {
       kind: "video",
       title: `Video: ${url.slice(0, 40)}${url.length > 40 ? "…" : ""}`,
       meta: `YouTube · ${videoId ? "Linked" : "URL added"}`,
-      summary: `YouTube video "${url}" has been linked. Ask me to summarize the lecture or generate study questions based on the topic!`,
+      summary: `YouTube video linked. Ask Francis AI about the topic — summaries, questions, or explanations.`,
       tags: ["YouTube", "Video Lecture"],
-      units: [
-        { id: "u1", title: "Lecture Content", brief: "Full video linked and ready." },
-      ],
+      units: [{ id: "u1", title: "Lecture Content", brief: "Video linked and ready." }],
+      url,
     };
     setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
@@ -191,18 +191,51 @@ function WorkspacePage() {
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: `🎬 YouTube video linked! Ask me anything about its content — I can summarize it, generate quiz questions, or create flashcards from the lecture. 🎓`,
+        text: `🎬 YouTube video linked! Ask me anything — I'll help summarize or quiz you on the topic. 🎓`,
       },
     ]);
   }
 
-  function sendMessage(text: string) {
-    if (!text.trim()) return;
+  async function sendMessage(text: string) {
+    if (!text.trim() || sending) return;
     const user: ChatMsg = { id: crypto.randomUUID(), role: "user", text };
+    const history = messages.map((m) => ({ role: m.role, text: m.text }));
     setMessages((m) => [...m, user]);
-    setTimeout(() => {
-      setMessages((m) => [...m, offlineReply(text, sources)]);
-    }, 700);
+    setSending(true);
+
+    // Prepare attachments — prioritise the active source, keep payload light.
+    const activeFirst = activeSource
+      ? [activeSource, ...sources.filter((s) => s.id !== activeSource.id)]
+      : sources;
+    const attachments = activeFirst.slice(0, 3).map((s) => ({
+      kind: s.kind === "pdf" ? ("pdf" as const) : ("youtube" as const),
+      name: s.title,
+      data: s.kind === "pdf" ? s.dataUrl : undefined,
+      url: s.kind !== "pdf" ? s.url : undefined,
+    }));
+
+    try {
+      const res = await ask({
+        data: { message: text, history, attachments, groundingOnly },
+      });
+      const reply: ChatMsg = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: res.ok ? res.text : `⚠️ ${res.error}`,
+      };
+      setMessages((m) => [...m, reply]);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: `⚠️ ${e instanceof Error ? e.message : "AI request failed."}`,
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
   }
 
   function convertToFlashcards() {
@@ -360,6 +393,9 @@ function WorkspacePage() {
                 toast.success("Quiz opened in canvas");
               }}
               activeSourceTitle={activeSource?.title ?? null}
+              sending={sending}
+              groundingOnly={groundingOnly}
+              onToggleGrounding={() => setGroundingOnly((v) => !v)}
             />
           </aside>
         </div>
@@ -500,6 +536,9 @@ function WorkspacePage() {
                 toast.success("Quiz opened in canvas");
               }}
               activeSourceTitle={activeSource?.title ?? null}
+              sending={sending}
+              groundingOnly={groundingOnly}
+              onToggleGrounding={() => setGroundingOnly((v) => !v)}
             />
           </aside>
         )}
@@ -1082,6 +1121,9 @@ function AssistantPanel({
   onConvertToFlashcards,
   onCreateQuiz,
   activeSourceTitle,
+  sending,
+  groundingOnly,
+  onToggleGrounding,
 }: {
   sources: Source[];
   messages: ChatMsg[];
@@ -1091,6 +1133,9 @@ function AssistantPanel({
   onConvertToFlashcards: () => void;
   onCreateQuiz: () => void;
   activeSourceTitle: string | null;
+  sending: boolean;
+  groundingOnly: boolean;
+  onToggleGrounding: () => void;
 }) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1129,12 +1174,33 @@ function AssistantPanel({
         </Button>
       </div>
 
+      {/* Grounding toggle */}
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <Target className="h-3 w-3" />
+          Source Grounding
+        </div>
+        <button
+          onClick={onToggleGrounding}
+          className={`relative h-4 w-8 rounded-full transition-colors ${
+            groundingOnly ? "bg-emerald-500" : "bg-slate-600"
+          }`}
+          aria-label="Toggle source grounding"
+        >
+          <span
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${
+              groundingOnly ? "translate-x-4" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
       {/* Status bar — no content warning */}
       {!hasContent && (
         <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2">
           <div className="flex items-center gap-2 text-xs text-amber-300">
             <Link2 className="h-3.5 w-3.5 shrink-0" />
-            <span>Upload a source to enable AI analysis</span>
+            <span>I can still help using my syllabus knowledge — upload a source for richer grounded answers.</span>
           </div>
         </div>
       )}
@@ -1168,6 +1234,20 @@ function AssistantPanel({
             </div>
           </div>
         ))}
+        {sending && (
+          <div className="flex justify-start">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mr-2 mt-1">
+              <Sparkles className="h-3 w-3 text-white" />
+            </div>
+            <div className="rounded-2xl rounded-bl-sm border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-slate-300">
+              <span className="inline-flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400 [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400 [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400" />
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Actions + Input */}
@@ -1214,12 +1294,14 @@ function AssistantPanel({
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={hasContent ? "Ask about your sources…" : "Upload a source first…"}
+            placeholder={sending ? "Francis AI is thinking…" : "Ask Francis AI anything…"}
+            disabled={sending}
             className="h-9 border-white/10 bg-white/5 text-sm placeholder:text-slate-500 text-slate-100"
           />
           <Button
             type="submit"
             size="icon"
+            disabled={sending || !input.trim()}
             className="h-9 w-9 shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
