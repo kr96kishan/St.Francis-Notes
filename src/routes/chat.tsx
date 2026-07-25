@@ -1294,12 +1294,14 @@ function AssistantPanel({
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={hasContent ? "Ask about your sources…" : "Upload a source first…"}
+            placeholder={sending ? "Francis AI is thinking…" : "Ask Francis AI anything…"}
+            disabled={sending}
             className="h-9 border-white/10 bg-white/5 text-sm placeholder:text-slate-500 text-slate-100"
           />
           <Button
             type="submit"
             size="icon"
+            disabled={sending || !input.trim()}
             className="h-9 w-9 shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
