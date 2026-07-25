@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { askAssistant } from "@/lib/ai-assistant.functions";
 import {
   ArrowLeft,
   Bot,
