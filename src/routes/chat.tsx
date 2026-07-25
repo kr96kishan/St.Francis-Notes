@@ -146,29 +146,49 @@ function WorkspacePage() {
   }, [sources.length]);
 
   // ── Handlers ──
-  function addPdfSource(file: File) {
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function addPdfSource(file: File) {
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    const kind: SourceKind = isPdf ? "pdf" : "video";
+    let dataUrl: string | undefined;
+    try {
+      if (isPdf && file.size < 12 * 1024 * 1024) {
+        dataUrl = await readFileAsDataUrl(file);
+      }
+    } catch {
+      /* ignore */
+    }
     const src: Source = {
       id: crypto.randomUUID(),
-      kind: "pdf",
+      kind,
       title: file.name,
-      meta: `${Math.max(1, Math.round(file.size / 1024))} KB · PDF`,
-      summary: `Document "${file.name}" has been uploaded. Ask me to summarize it, generate flashcards, or create exam questions!`,
-      tags: ["PDF", "Study Material"],
-      units: [
-        { id: "u1", title: "Unit Overview", brief: "Full document content available." },
-      ],
+      meta: `${Math.max(1, Math.round(file.size / 1024))} KB · ${isPdf ? "PDF" : "Video"}`,
+      summary: isPdf
+        ? `PDF "${file.name}" is ready. Ask Francis AI to summarize it, generate exam questions, or create flashcards from it.`
+        : `Video "${file.name}" uploaded. Francis AI can discuss the topic — ask a question to begin.`,
+      tags: [isPdf ? "PDF" : "Video", "Study Material"],
+      units: [{ id: "u1", title: "Full Document", brief: "Complete content available for AI analysis." }],
+      dataUrl,
     };
     setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
     setCenterMode("source");
     setSidebarOpen(false);
-    toast.success(`"${file.name}" added — ready to analyze!`);
+    toast.success(`"${file.name}" ready for AI analysis!`);
     setMessages((m) => [
       ...m,
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: `📄 Got it! I've loaded **"${file.name}"**. You can now ask me to:\n- Summarize it\n- Generate exam questions\n- Create flashcards\n- Explain any concept from it`,
+        text: `📄 Loaded **"${file.name}"**${isPdf && dataUrl ? " — I can read the full contents" : ""}. Try:\n\n• *"Summarize this"*\n• *"Generate 5 exam questions"*\n• *"Explain Unit 1 in simple terms"*`,
       },
     ]);
   }
@@ -183,11 +203,10 @@ function WorkspacePage() {
       kind: "video",
       title: `Video: ${url.slice(0, 40)}${url.length > 40 ? "…" : ""}`,
       meta: `YouTube · ${videoId ? "Linked" : "URL added"}`,
-      summary: `YouTube video "${url}" has been linked. Ask me to summarize the lecture or generate study questions based on the topic!`,
+      summary: `YouTube video linked. Ask Francis AI about the topic — summaries, questions, or explanations.`,
       tags: ["YouTube", "Video Lecture"],
-      units: [
-        { id: "u1", title: "Lecture Content", brief: "Full video linked and ready." },
-      ],
+      units: [{ id: "u1", title: "Lecture Content", brief: "Video linked and ready." }],
+      url,
     };
     setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
@@ -200,18 +219,51 @@ function WorkspacePage() {
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: `🎬 YouTube video linked! Ask me anything about its content — I can summarize it, generate quiz questions, or create flashcards from the lecture. 🎓`,
+        text: `🎬 YouTube video linked! Ask me anything — I'll help summarize or quiz you on the topic. 🎓`,
       },
     ]);
   }
 
-  function sendMessage(text: string) {
-    if (!text.trim()) return;
+  async function sendMessage(text: string) {
+    if (!text.trim() || sending) return;
     const user: ChatMsg = { id: crypto.randomUUID(), role: "user", text };
+    const history = messages.map((m) => ({ role: m.role, text: m.text }));
     setMessages((m) => [...m, user]);
-    setTimeout(() => {
-      setMessages((m) => [...m, offlineReply(text, sources)]);
-    }, 700);
+    setSending(true);
+
+    // Prepare attachments — prioritise the active source, keep payload light.
+    const activeFirst = activeSource
+      ? [activeSource, ...sources.filter((s) => s.id !== activeSource.id)]
+      : sources;
+    const attachments = activeFirst.slice(0, 3).map((s) => ({
+      kind: s.kind === "pdf" ? ("pdf" as const) : ("youtube" as const),
+      name: s.title,
+      data: s.kind === "pdf" ? s.dataUrl : undefined,
+      url: s.kind !== "pdf" ? s.url : undefined,
+    }));
+
+    try {
+      const res = await ask({
+        data: { message: text, history, attachments, groundingOnly },
+      });
+      const reply: ChatMsg = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: res.ok ? res.text : `⚠️ ${res.error}`,
+      };
+      setMessages((m) => [...m, reply]);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: `⚠️ ${e instanceof Error ? e.message : "AI request failed."}`,
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
   }
 
   function convertToFlashcards() {
