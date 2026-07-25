@@ -393,6 +393,9 @@ function WorkspacePage() {
                 toast.success("Quiz opened in canvas");
               }}
               activeSourceTitle={activeSource?.title ?? null}
+              sending={sending}
+              groundingOnly={groundingOnly}
+              onToggleGrounding={() => setGroundingOnly((v) => !v)}
             />
           </aside>
         </div>
