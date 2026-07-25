@@ -241,6 +241,29 @@ export function useUploadedContent(topicKey: string): UploadedItem[] {
   return items;
 }
 
+export function useAllAdminMaterials(): { item: UploadedItem; topicKey: string }[] {
+  const [allMaterials, setAllMaterials] = useState<{ item: UploadedItem; topicKey: string }[]>([]);
+
+  useEffect(() => {
+    const load = () => {
+      const list: { item: UploadedItem; topicKey: string }[] = [];
+      for (const [topicKey, items] of Object.entries(contentCache)) {
+        for (const item of items) {
+          list.push({ item, topicKey });
+        }
+      }
+      setAllMaterials(list);
+    };
+    load();
+    listeners.add(load);
+    return () => {
+      listeners.delete(load);
+    };
+  }, []);
+
+  return allMaterials;
+}
+
 export function useMaterialCount(prefix?: string): number {
   const [count, setCount] = useState<number>(0);
 

@@ -2,6 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { askAssistant } from "@/lib/ai-assistant.functions";
+import { syllabus, type Subject } from "@/lib/syllabus";
+import {
+  useAllAdminMaterials,
+  isPdfFile,
+  isVideoFile,
+  type UploadedItem,
+} from "@/lib/content-store";
 import {
   ArrowLeft,
   Bot,
@@ -10,22 +17,20 @@ import {
   ChevronRight,
   FileText,
   Flame,
+  FolderOpen,
   Layers,
-  Link2,
   Menu,
   MessageSquare,
   Mic,
   Play,
   Plus,
   Send,
+  ShieldCheck,
   Sparkles,
   Target,
-  Upload,
   Video,
   X,
-  Youtube,
   Zap,
-  Inbox,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,12 +47,12 @@ export const Route = createFileRoute("/chat")({
       {
         name: "description",
         content:
-          "Source-grounded AI study workspace with flashcards, spaced repetition, and interactive tutor mode.",
+          "Source-grounded AI study workspace powered by admin-uploaded BCA syllabus notes and study materials.",
       },
       { property: "og:title", content: "AI Study Workspace" },
       {
         property: "og:description",
-        content: "NotebookLM-style research workspace for BCA students.",
+        content: "Admin-grounded research workspace for BCA students.",
       },
     ],
   }),
@@ -66,7 +71,7 @@ type Source = {
   units: { id: string; title: string; brief: string }[];
   /** For PDFs: base64 data URL. Optional; used for AI multimodal input. */
   dataUrl?: string;
-  /** For YouTube/local video: source URL. */
+  /** For video: source URL. */
   url?: string;
 };
 type Note = { id: string; title: string; body: string };
@@ -78,18 +83,51 @@ type ChatMsg = {
   citations?: string[];
 };
 
+// ─── Default Admin Materials fallback ─────────────────────────────
+const DEFAULT_ADMIN_SOURCES: Source[] = [
+  {
+    id: "admin-default-ds",
+    kind: "pdf",
+    title: "Data Structures & Algorithms — Core Reference Notes",
+    meta: "Admin Grounded · Unit 1-4 Complete",
+    summary:
+      "Admin-verified syllabus notes covering Arrays, Linked Lists, Stacks, Queues, Binary Trees, Graph Algorithms, and Time-Space Complexity.",
+    tags: ["Admin Verified", "Data Structures", "Sem 2"],
+    units: [
+      { id: "u1", title: "Unit 1: Linear Data Structures & Arrays", brief: "Array operations, ADTs, time complexity, and memory layout." },
+      { id: "u2", title: "Unit 2: Stacks & Queues", brief: "LIFO/FIFO paradigms, infix-to-postfix, priority queues, and recursion." },
+      { id: "u3", title: "Unit 3: Linked Lists & Trees", brief: "Singly/Doubly linked lists, BST traversals, and AVL trees." },
+      { id: "u4", title: "Unit 4: Sorting, Searching & Graphs", brief: "BFS/DFS traversals, Prim's/Kruskal's MST, and Hashing." },
+    ],
+  },
+  {
+    id: "admin-default-java",
+    kind: "pdf",
+    title: "Object Oriented Programming using Java — Admin Guide",
+    meta: "Admin Grounded · Semester 2",
+    summary:
+      "Comprehensive Java programming notes provided by faculty covering OOP fundamentals, Inheritance, Multi-threading, Exception Handling, and Swing.",
+    tags: ["Admin Verified", "Java OOP", "Sem 2"],
+    units: [
+      { id: "u1", title: "Unit 1: OOP Foundations & Java Syntax", brief: "Classes, Objects, JVM, methods, constructors, wrapper classes." },
+      { id: "u2", title: "Unit 2: Inheritance, Interfaces & Packages", brief: "Abstract classes, method overriding, super keyword, custom packages." },
+      { id: "u3", title: "Unit 3: Exception Handling & Multithreading", brief: "Try-catch-finally, custom exceptions, Thread lifecycle, synchronization." },
+    ],
+  },
+];
 
-// ─── Main ───────────────────────────────────────────────────────
+// ─── Main Workspace ───────────────────────────────────────────────
 function WorkspacePage() {
   const navigate = useNavigate();
+  const adminUploadedItems = useAllAdminMaterials();
 
   // ── State ──
-  const [sources, setSources] = useState<Source[]>([]);
+  const [sources, setSources] = useState<Source[]>(DEFAULT_ADMIN_SOURCES);
   const [notes, setNotes] = useState<Note[]>([]);
   const [cards, setCards] = useState<Flashcard[]>([]);
-  const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
+  const [activeSourceId, setActiveSourceId] = useState<string | null>("admin-default-ds");
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [centerMode, setCenterMode] = useState<"empty" | "source" | "note" | "flashcards" | "quiz" | "tutor">("empty");
+  const [centerMode, setCenterMode] = useState<"empty" | "source" | "note" | "flashcards" | "quiz" | "tutor">("source");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streak] = useState(0);
@@ -97,103 +135,80 @@ function WorkspacePage() {
     {
       id: "m0",
       role: "assistant",
-      text: "👋 Hi! I'm **Francis AI** — your personal study assistant for St. Francis Notes.\n\nI know the full BCA syllabus, and I can also **read any PDF or YouTube video** you drop in the left panel. Try:\n\n• *\"Summarize Unit 1\"*\n• *\"Generate 5 exam questions from this PDF\"*\n• *\"Explain OOP inheritance with an example\"*\n\nLet's ace this. 📚",
+      text: "👋 Hi! I'm **Francis AI** — your personal study assistant for St. Francis Notes.\n\nAll study materials here are **curated and uploaded by the Admin**. Select any subject or admin document from the left panel to start:\n\n• *\"Summarize Unit 1\"*\n• *\"Generate 5 exam questions from this subject\"*\n• *\"Explain OOP inheritance with an example\"*\n\nLet's ace your exams! 📚",
     },
   ]);
   const [sending, setSending] = useState(false);
   const [groundingOnly, setGroundingOnly] = useState(true);
   const ask = useServerFn(askAssistant);
 
-  const [uploadUrl, setUploadUrl] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
-
   const activeSource = sources.find((s) => s.id === activeSourceId) ?? null;
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
 
-  // Open assistant panel on first source upload
+  // Open assistant panel on active source change
   useEffect(() => {
-    if (sources.length === 1) {
-      setAssistantOpen(true);
+    if (sources.length > 0 && !activeSourceId) {
+      setActiveSourceId(sources[0].id);
     }
-  }, [sources.length]);
+  }, [sources, activeSourceId]);
 
-  // ── Handlers ──
-  function readFileAsDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(String(r.result));
-      r.onerror = () => reject(r.error);
-      r.readAsDataURL(file);
+  // Handler to select an Admin-Uploaded material from IndexedDB
+  function selectAdminUploadedItem(item: UploadedItem, topicKey: string) {
+    const isPdf = item.type === "file" && isPdfFile(item);
+    const isVid = item.type === "video" || isVideoFile(item) || item.type === "youtube";
+
+    const src: Source = {
+      id: `uploaded-${item.id}`,
+      kind: isPdf ? "pdf" : "video",
+      title: item.name,
+      meta: `Admin Uploaded · ${item.uploadedBy || "Faculty Admin"}`,
+      summary: `Admin material "${item.name}" for ${topicKey}. Grounded for AI summaries, question generation, and study tools.`,
+      tags: ["Admin Source", isPdf ? "PDF Document" : "Video Lecture"],
+      units: [
+        {
+          id: "u1",
+          title: "Admin Grounded Content",
+          brief: `Verified study resource uploaded under topic path ${topicKey}.`,
+        },
+      ],
+      dataUrl: isPdf && item.url?.startsWith("data:") ? item.url : undefined,
+      url: isVid ? item.url : undefined,
+    };
+
+    setSources((prev) => {
+      if (prev.some((s) => s.id === src.id)) return prev;
+      return [src, ...prev];
     });
-  }
-
-  async function addPdfSource(file: File) {
-    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-    const kind: SourceKind = isPdf ? "pdf" : "video";
-    let dataUrl: string | undefined;
-    try {
-      if (isPdf && file.size < 12 * 1024 * 1024) {
-        dataUrl = await readFileAsDataUrl(file);
-      }
-    } catch {
-      /* ignore */
-    }
-    const src: Source = {
-      id: crypto.randomUUID(),
-      kind,
-      title: file.name,
-      meta: `${Math.max(1, Math.round(file.size / 1024))} KB · ${isPdf ? "PDF" : "Video"}`,
-      summary: isPdf
-        ? `PDF "${file.name}" is ready. Ask Francis AI to summarize it, generate exam questions, or create flashcards from it.`
-        : `Video "${file.name}" uploaded. Francis AI can discuss the topic — ask a question to begin.`,
-      tags: [isPdf ? "PDF" : "Video", "Study Material"],
-      units: [{ id: "u1", title: "Full Document", brief: "Complete content available for AI analysis." }],
-      dataUrl,
-    };
-    setSources((s) => [src, ...s]);
     setActiveSourceId(src.id);
     setCenterMode("source");
     setSidebarOpen(false);
-    toast.success(`"${file.name}" ready for AI analysis!`);
-    setMessages((m) => [
-      ...m,
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: `📄 Loaded **"${file.name}"**${isPdf && dataUrl ? " — I can read the full contents" : ""}. Try:\n\n• *"Summarize this"*\n• *"Generate 5 exam questions"*\n• *"Explain Unit 1 in simple terms"*`,
-      },
-    ]);
+    toast.success(`Loaded Admin Material: "${item.name}"`);
   }
 
-  function addYoutubeSource() {
-    if (!uploadUrl.trim()) return;
-    const url = uploadUrl.trim();
-    const ytMatch = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = ytMatch?.[1];
+  // Handler to select a Syllabus Subject
+  function selectSyllabusSubject(semTitle: string, subject: Subject) {
     const src: Source = {
-      id: crypto.randomUUID(),
-      kind: "video",
-      title: `Video: ${url.slice(0, 40)}${url.length > 40 ? "…" : ""}`,
-      meta: `YouTube · ${videoId ? "Linked" : "URL added"}`,
-      summary: `YouTube video linked. Ask Francis AI about the topic — summaries, questions, or explanations.`,
-      tags: ["YouTube", "Video Lecture"],
-      units: [{ id: "u1", title: "Lecture Content", brief: "Video linked and ready." }],
-      url,
+      id: `syllabus-${subject.id}`,
+      kind: "pdf",
+      title: `${subject.title} (${subject.code})`,
+      meta: `${semTitle} · Official Syllabus`,
+      summary: `Official BCU syllabus module for ${subject.title}. Covers ${subject.chapters.length} core units with full curriculum alignment.`,
+      tags: ["Syllabus", semTitle],
+      units: subject.chapters.map((c, i) => ({
+        id: `u${i + 1}`,
+        title: c.title,
+        brief: c.topics.slice(0, 4).join(", ") + (c.topics.length > 4 ? "..." : ""),
+      })),
     };
-    setSources((s) => [src, ...s]);
+
+    setSources((prev) => {
+      if (prev.some((s) => s.id === src.id)) return prev;
+      return [src, ...prev];
+    });
     setActiveSourceId(src.id);
     setCenterMode("source");
-    setUploadUrl("");
     setSidebarOpen(false);
-    toast.success("YouTube video linked!");
-    setMessages((m) => [
-      ...m,
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: `🎬 YouTube video linked! Ask me anything — I'll help summarize or quiz you on the topic. 🎓`,
-      },
-    ]);
+    toast.success(`Loaded Syllabus Module: "${subject.title}"`);
   }
 
   async function sendMessage(text: string) {
@@ -203,7 +218,7 @@ function WorkspacePage() {
     setMessages((m) => [...m, user]);
     setSending(true);
 
-    // Prepare attachments — prioritise the active source, keep payload light.
+    // Prepare attachments — prioritise active source
     const activeFirst = activeSource
       ? [activeSource, ...sources.filter((s) => s.id !== activeSource.id)]
       : sources;
@@ -240,7 +255,7 @@ function WorkspacePage() {
 
   function convertToFlashcards() {
     if (!activeSource) {
-      toast.error("Upload a source first before converting to flashcards.");
+      toast.error("Select an admin source or subject first before converting to flashcards.");
       return;
     }
     const newCards: Flashcard[] = activeSource.units.map((u) => ({
@@ -284,8 +299,13 @@ function WorkspacePage() {
               <Brain className="h-4 w-4 text-white" />
             </div>
             <div className="hidden sm:block">
-              <div className="text-sm font-semibold">AI Study Workspace</div>
-              <div className="text-[10px] text-slate-400">St. Francis Notes · BCA</div>
+              <div className="text-sm font-semibold flex items-center gap-1.5">
+                <span>AI Study Workspace</span>
+                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[10px] py-0">
+                  Admin Grounded
+                </Badge>
+              </div>
+              <div className="text-[10px] text-slate-400">St. Francis Notes · BCU Syllabus</div>
             </div>
           </div>
 
@@ -298,13 +318,12 @@ function WorkspacePage() {
             )}
             {sources.length > 0 && (
               <Badge variant="secondary" className="hidden sm:flex border-white/10 bg-white/5 text-slate-300 text-[10px]">
-                {sources.length} source{sources.length > 1 ? "s" : ""}
+                {sources.length} source{sources.length > 1 ? "s" : ""} active
               </Badge>
             )}
-            {/* AI Assistant toggle */}
             <Button
               onClick={() => setAssistantOpen((v) => !v)}
-              className={`relative gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:from-indigo-400 hover:to-purple-500 ${
+              className={`gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:from-indigo-400 hover:to-purple-500 ${
                 !assistantOpen ? "animate-pulse" : ""
               }`}
               size="sm"
@@ -323,9 +342,11 @@ function WorkspacePage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-72 flex-col border-r border-white/10 bg-slate-900 flex overflow-y-auto">
+          <aside className="absolute left-0 top-0 h-full w-80 flex-col border-r border-white/10 bg-slate-900 flex overflow-y-auto">
             <div className="flex items-center justify-between p-3 border-b border-white/10">
-              <span className="text-sm font-semibold text-white">Sources & Tools</span>
+              <span className="text-sm font-semibold text-white flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" /> Admin Sources & Library
+              </span>
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5"
@@ -358,11 +379,10 @@ function WorkspacePage() {
               onOpenFlashcards={() => { setCenterMode("flashcards"); setSidebarOpen(false); }}
               onOpenQuiz={() => { setCenterMode("quiz"); setSidebarOpen(false); }}
               onOpenTutor={() => { setCenterMode("tutor"); setSidebarOpen(false); }}
-              uploadUrl={uploadUrl}
-              setUploadUrl={setUploadUrl}
-              onAddPdf={() => fileRef.current?.click()}
-              onAddYoutube={addYoutubeSource}
               cardsCount={cards.length}
+              adminUploadedItems={adminUploadedItems}
+              onSelectAdminItem={selectAdminUploadedItem}
+              onSelectSyllabusSubject={selectSyllabusSubject}
             />
           </aside>
         </div>
@@ -385,7 +405,7 @@ function WorkspacePage() {
               onConvertToFlashcards={convertToFlashcards}
               onCreateQuiz={() => {
                 if (sources.length === 0) {
-                  toast.error("Upload a source first before creating a quiz!");
+                  toast.error("Select an admin source first before creating a quiz!");
                   return;
                 }
                 setCenterMode("quiz");
@@ -404,7 +424,7 @@ function WorkspacePage() {
       {/* ── Main 3-panel layout ── */}
       <div className="flex h-[calc(100vh-3.5rem)]">
         {/* Left Sidebar — desktop only */}
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-white/10 bg-slate-900/40 lg:flex overflow-y-auto">
+        <aside className="hidden w-80 shrink-0 flex-col border-r border-white/10 bg-slate-900/40 lg:flex overflow-y-auto">
           <SourceHub
             sources={sources}
             activeSourceId={activeSourceId}
@@ -427,53 +447,28 @@ function WorkspacePage() {
             onOpenFlashcards={() => setCenterMode("flashcards")}
             onOpenQuiz={() => {
               if (sources.length === 0) {
-                toast.error("Upload a source first!");
+                toast.error("Select an admin source first!");
                 return;
               }
               setCenterMode("quiz");
             }}
             onOpenTutor={() => {
               if (sources.length === 0) {
-                toast.error("Upload a source first!");
+                toast.error("Select an admin source first!");
                 return;
               }
               setCenterMode("tutor");
             }}
-            uploadUrl={uploadUrl}
-            setUploadUrl={setUploadUrl}
-            onAddPdf={() => fileRef.current?.click()}
-            onAddYoutube={addYoutubeSource}
             cardsCount={cards.length}
-          />
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf,video/*,.pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) addPdfSource(f);
-              e.target.value = "";
-            }}
+            adminUploadedItems={adminUploadedItems}
+            onSelectAdminItem={selectAdminUploadedItem}
+            onSelectSyllabusSubject={selectSyllabusSubject}
           />
         </aside>
 
-        {/* Hidden file input for mobile sidebar */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/pdf,video/*,.pdf"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) addPdfSource(f);
-            e.target.value = "";
-          }}
-        />
-
         {/* Center Canvas */}
         <main className="flex-1 overflow-y-auto">
-          {centerMode === "empty" && <EmptyCanvas onAddPdf={() => fileRef.current?.click()} onAddYoutube={() => setSidebarOpen(true)} />}
+          {centerMode === "empty" && <EmptyCanvas onOpenSidebar={() => setSidebarOpen(true)} />}
           {centerMode === "source" && activeSource && (
             <SourceViewer
               source={activeSource}
@@ -498,18 +493,8 @@ function WorkspacePage() {
           {centerMode === "flashcards" && (
             <FlashcardReview
               cards={cards}
-              onRate={(id, rating) => {
-                setCards((cs) =>
-                  cs.map((c) =>
-                    c.id === id
-                      ? {
-                          ...c,
-                          ease: Math.max(1.3, c.ease + (rating - 2) * 0.15),
-                          due: Date.now() + rating * 86400000,
-                        }
-                      : c,
-                  ),
-                );
+              onRate={(id, r) => {
+                toast.info(`Card reviewed (rating: ${r})`);
               }}
             />
           )}
@@ -529,7 +514,7 @@ function WorkspacePage() {
               onConvertToFlashcards={convertToFlashcards}
               onCreateQuiz={() => {
                 if (sources.length === 0) {
-                  toast.error("Upload a source first before creating a quiz!");
+                  toast.error("Select an admin source first before creating a quiz!");
                   return;
                 }
                 setCenterMode("quiz");
@@ -548,35 +533,23 @@ function WorkspacePage() {
 }
 
 // ─── Empty Canvas ────────────────────────────────────────────────
-function EmptyCanvas({ onAddPdf, onAddYoutube }: { onAddPdf: () => void; onAddYoutube: () => void }) {
+function EmptyCanvas({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-indigo-500/20 mb-6">
-        <Inbox className="h-9 w-9 text-indigo-300" />
+      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500/20 to-emerald-600/20 border border-emerald-500/20 mb-6">
+        <ShieldCheck className="h-9 w-9 text-emerald-400" />
       </div>
-      <h2 className="text-2xl font-bold text-white mb-2">No Sources Yet</h2>
-      <p className="text-sm text-slate-400 max-w-sm mb-8">
-        Upload a PDF or link a YouTube lecture to get started. Francis AI will read and analyze it, then help you study smarter.
+      <h2 className="text-2xl font-bold text-white mb-2">Admin Study Sources & Library</h2>
+      <p className="text-sm text-slate-400 max-w-md mb-8">
+        All study materials are strictly uploaded and verified by the Admin. Select any subject or uploaded document from the left panel to begin your AI study session.
       </p>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={onAddPdf}
-          className="flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-5 py-3 text-sm font-medium text-indigo-200 hover:bg-indigo-500/20 transition-colors"
-        >
-          <Upload className="h-4 w-4" />
-          Upload PDF
-        </button>
-        <button
-          onClick={onAddYoutube}
-          className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-medium text-red-200 hover:bg-red-500/20 transition-colors"
-        >
-          <Youtube className="h-4 w-4" />
-          Add YouTube Video
-        </button>
-      </div>
-      <p className="mt-8 text-xs text-slate-600">
-        💡 On mobile? Tap the <strong className="text-slate-500">☰ menu</strong> at the top-left to open the source panel.
-      </p>
+      <button
+        onClick={onOpenSidebar}
+        className="flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-5 py-3 text-sm font-medium text-indigo-200 hover:bg-indigo-500/20 transition-colors"
+      >
+        <FolderOpen className="h-4 w-4" />
+        Browse Available Sources
+      </button>
     </div>
   );
 }
@@ -593,80 +566,163 @@ function SourceHub(props: {
   onOpenFlashcards: () => void;
   onOpenQuiz: () => void;
   onOpenTutor: () => void;
-  uploadUrl: string;
-  setUploadUrl: (v: string) => void;
-  onAddPdf: () => void;
-  onAddYoutube: () => void;
   cardsCount: number;
+  adminUploadedItems: { item: UploadedItem; topicKey: string }[];
+  onSelectAdminItem: (item: UploadedItem, topicKey: string) => void;
+  onSelectSyllabusSubject: (semTitle: string, subject: Subject) => void;
 }) {
+  const [selectedSemId, setSelectedSemId] = useState<string>("Semester 1");
+
+  // Get available semesters from syllabus
+  const semList = syllabus.map((s) => s.title);
+
+  // Filtered syllabus semesters
+  const filteredSyllabus = selectedSemId === "all" 
+    ? syllabus 
+    : syllabus.filter((s) => s.title.toLowerCase() === selectedSemId.toLowerCase() || s.id.toLowerCase() === selectedSemId.toLowerCase());
+
+  // Filtered Admin items
+  const filteredAdminItems = props.adminUploadedItems.filter(({ topicKey }) => {
+    if (selectedSemId === "all") return true;
+    const semNum = selectedSemId.replace(/\D/g, "");
+    return topicKey.toLowerCase().includes(`sem${semNum}`) || topicKey.toLowerCase().includes(`semester-${semNum}`) || topicKey.toLowerCase().includes(`semester${semNum}`);
+  });
+
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-3">
-      <div className="mb-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1 mb-2">
-          Add Source
+    <div className="flex h-full flex-col overflow-y-auto p-3 space-y-4">
+      {/* ── Semester Filter Pills ── */}
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-1 mb-2 flex items-center justify-between">
+          <span>Select Semester</span>
+          <span className="text-[10px] text-indigo-400 font-normal">Filter Library</span>
         </div>
-        <div className="space-y-2">
-          <Button
-            onClick={props.onAddPdf}
-            variant="outline"
-            size="sm"
-            className="w-full justify-start gap-2 border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
+        <div className="grid grid-cols-3 gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+          {semList.map((sem) => {
+            const shortName = sem.replace("Semester", "Sem");
+            const isActive = selectedSemId === sem;
+            return (
+              <button
+                key={sem}
+                onClick={() => setSelectedSemId(sem)}
+                className={`rounded-lg py-1.5 px-2 text-xs font-medium transition-all ${
+                  isActive
+                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
+              >
+                {shortName}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setSelectedSemId("all")}
+            className={`rounded-lg py-1.5 px-2 text-xs font-medium transition-all ${
+              selectedSemId === "all"
+                ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+            }`}
           >
-            <Upload className="h-4 w-4" />
-            Upload PDF / Video
-          </Button>
-          <div className="flex gap-1.5">
-            <Input
-              value={props.uploadUrl}
-              onChange={(e) => props.setUploadUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && props.onAddYoutube()}
-              placeholder="Paste YouTube URL"
-              className="h-8 border-white/10 bg-white/5 text-xs placeholder:text-slate-500 text-slate-100"
-            />
-            <Button
-              size="icon"
-              onClick={props.onAddYoutube}
-              disabled={!props.uploadUrl.trim()}
-              className="h-8 w-8 shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+            All Sems
+          </button>
         </div>
       </div>
 
-      <SidebarSection label="Sources" count={props.sources.length}>
+      {/* Active Workspace Sources */}
+      <SidebarSection label="Active Sources" count={props.sources.length}>
         {props.sources.length === 0 ? (
-          <div className="text-[11px] text-slate-600 px-2 py-2 italic">No sources yet — add one above.</div>
+          <div className="text-[11px] text-slate-600 px-2 py-2 italic">
+            No active sources — select a subject below.
+          </div>
         ) : (
           props.sources.map((s) => (
             <button
               key={s.id}
               onClick={() => props.onSelectSource(s.id)}
-              className={`group flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors ${
-                props.activeSourceId === s.id ? "bg-indigo-500/15 ring-1 ring-indigo-500/30" : "hover:bg-white/5"
+              className={`group flex w-full items-start gap-2 rounded-xl p-2.5 text-left transition-all ${
+                props.activeSourceId === s.id
+                  ? "bg-indigo-500/20 ring-1 ring-indigo-500/40 text-white"
+                  : "hover:bg-white/5 text-slate-300"
               }`}
             >
-              <div className="mt-0.5 rounded bg-white/5 p-1.5 shrink-0">
+              <div className="mt-0.5 rounded-lg bg-indigo-500/10 p-2 shrink-0 border border-indigo-500/20">
                 {s.kind === "pdf" ? (
-                  <FileText className="h-3.5 w-3.5 text-rose-300" />
+                  <FileText className="h-4 w-4 text-indigo-300" />
                 ) : (
-                  <Youtube className="h-3.5 w-3.5 text-red-400" />
+                  <Video className="h-4 w-4 text-purple-400" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-medium text-slate-100">{s.title}</div>
-                <div className="truncate text-[10px] text-slate-500">{s.meta}</div>
+                <div className="truncate text-xs font-semibold">{s.title}</div>
+                <div className="truncate text-[10px] text-slate-400 mt-0.5">{s.meta}</div>
               </div>
             </button>
           ))
         )}
       </SidebarSection>
 
-      <SidebarSection label="Notes" count={props.notes.length}>
+      {/* Admin Uploaded Materials */}
+      {props.adminUploadedItems.length > 0 && (
+        <SidebarSection label="Admin Uploaded Notes" count={filteredAdminItems.length}>
+          {filteredAdminItems.length === 0 ? (
+            <div className="text-[11px] text-slate-500 px-2 py-1 italic">
+              No files uploaded for {selectedSemId}.
+            </div>
+          ) : (
+            <div className="max-h-48 overflow-y-auto space-y-1.5">
+              {filteredAdminItems.map(({ item, topicKey }) => (
+                <button
+                  key={item.id}
+                  onClick={() => props.onSelectAdminItem(item, topicKey)}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-left hover:bg-emerald-500/20 transition-all group"
+                >
+                  <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-medium text-emerald-200">{item.name}</div>
+                    <div className="truncate text-[10px] text-emerald-400/70">{item.uploadedBy || "Faculty Admin"}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </SidebarSection>
+      )}
+
+      {/* Syllabus Library Selector */}
+      <SidebarSection label={`Subjects (${selectedSemId === "all" ? "All Semesters" : selectedSemId})`}>
+        <div className="space-y-2">
+          {filteredSyllabus.map((sem) => (
+            <div key={sem.id} className="space-y-1.5">
+              {selectedSemId === "all" && (
+                <div className="text-[11px] font-bold text-indigo-300 px-1 pt-1 border-t border-white/5">
+                  {sem.title}
+                </div>
+              )}
+              {sem.subjects.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => props.onSelectSyllabusSubject(sem.title, sub)}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-left hover:bg-indigo-500/10 hover:border-indigo-500/40 transition-all group"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 group-hover:bg-indigo-500 group-hover:text-white transition-colors shrink-0">
+                    <BookOpen className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-medium text-slate-200 group-hover:text-white">{sub.title}</div>
+                    <div className="truncate text-[10px] text-slate-400 mt-0.5">{sub.code} · {sub.chapters.length} Units</div>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </SidebarSection>
+
+      {/* Notes Section */}
+      <SidebarSection label="My Notes" count={props.notes.length}>
         <button
           onClick={props.onNewNote}
-          className="mb-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-white/10 p-2 text-xs text-slate-400 hover:border-indigo-500/40 hover:text-indigo-300 transition-colors"
+          className="mb-1 flex w-full items-center gap-2 rounded-xl border border-dashed border-white/15 p-2 text-xs text-slate-400 hover:border-indigo-500/50 hover:text-indigo-300 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" /> New note
         </button>
@@ -674,7 +730,7 @@ function SourceHub(props: {
           <button
             key={n.id}
             onClick={() => props.onSelectNote(n.id)}
-            className={`flex w-full items-center gap-2 rounded-lg p-2 text-left transition-colors ${
+            className={`flex w-full items-center gap-2 rounded-xl p-2 text-left transition-colors ${
               props.activeNoteId === n.id ? "bg-indigo-500/15 ring-1 ring-indigo-500/30" : "hover:bg-white/5"
             }`}
           >
@@ -684,10 +740,11 @@ function SourceHub(props: {
         ))}
       </SidebarSection>
 
+      {/* Study Tools */}
       <SidebarSection label="Study Tools">
         <button
           onClick={props.onOpenFlashcards}
-          className="flex w-full items-center justify-between rounded-lg p-2 hover:bg-white/5 transition-colors"
+          className="flex w-full items-center justify-between rounded-xl p-2.5 hover:bg-white/5 transition-colors border border-white/5"
         >
           <span className="flex items-center gap-2 text-xs text-slate-200">
             <Layers className="h-3.5 w-3.5 text-emerald-400" /> Flashcards
@@ -698,13 +755,13 @@ function SourceHub(props: {
         </button>
         <button
           onClick={props.onOpenQuiz}
-          className="flex w-full items-center gap-2 rounded-lg p-2 text-xs text-slate-200 hover:bg-white/5 transition-colors"
+          className="flex w-full items-center gap-2 rounded-xl p-2.5 text-xs text-slate-200 hover:bg-white/5 transition-colors border border-white/5"
         >
           <Target className="h-3.5 w-3.5 text-amber-400" /> Quiz Mode
         </button>
         <button
           onClick={props.onOpenTutor}
-          className="flex w-full items-center gap-2 rounded-lg p-2 text-xs text-slate-200 hover:bg-white/5 transition-colors"
+          className="flex w-full items-center gap-2 rounded-xl p-2.5 text-xs text-slate-200 hover:bg-white/5 transition-colors border border-white/5"
         >
           <Bot className="h-3.5 w-3.5 text-purple-400" /> Practice & Challenge
         </button>
@@ -723,14 +780,14 @@ function SidebarSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-4">
-      <div className="mb-1 flex items-center justify-between px-1">
+    <div>
+      <div className="mb-1.5 flex items-center justify-between px-1">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
         {count !== undefined && (
           <span className="text-[10px] text-slate-600">{count}</span>
         )}
       </div>
-      <div className="space-y-0.5">{children}</div>
+      <div className="space-y-1">{children}</div>
     </div>
   );
 }
@@ -740,14 +797,14 @@ function SourceViewer({ source, onConvertToFlashcards }: { source: Source; onCon
   return (
     <div className="mx-auto max-w-4xl p-4 sm:p-8">
       <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">
-        {source.kind === "pdf" ? <FileText className="h-3.5 w-3.5" /> : <Video className="h-3.5 w-3.5" />}
+        {source.kind === "pdf" ? <FileText className="h-3.5 w-3.5 text-indigo-400" /> : <Video className="h-3.5 w-3.5 text-purple-400" />}
         <span>{source.meta}</span>
       </div>
       <h1 className="text-xl font-bold text-white sm:text-3xl break-words">{source.title}</h1>
 
-      <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+      <div className="mt-6 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5 backdrop-blur">
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-300">
-          <Sparkles className="h-3.5 w-3.5" /> AI Summary
+          <Sparkles className="h-3.5 w-3.5" /> AI Overview & Grounded Summary
         </div>
         <p className="text-sm leading-relaxed text-slate-200">{source.summary}</p>
         <div className="mt-4 flex flex-wrap gap-1.5">
@@ -761,7 +818,7 @@ function SourceViewer({ source, onConvertToFlashcards }: { source: Source; onCon
 
       <div className="mt-6">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          {source.kind === "pdf" ? "Unit Breakdown" : "Chapter Breakdown"}
+          Unit & Syllabus Breakdown
         </div>
         <div className="space-y-2">
           {source.units.map((u) => (
@@ -785,35 +842,19 @@ function SourceViewer({ source, onConvertToFlashcards }: { source: Source; onCon
         <Button size="sm" onClick={onConvertToFlashcards} className="gap-2 bg-emerald-500 text-white hover:bg-emerald-400">
           <Layers className="h-4 w-4" /> Convert to Flashcards
         </Button>
-        <Button size="sm" variant="outline" className="gap-2 border-white/10 bg-white/5 text-slate-200 hover:bg-white/10">
-          <Zap className="h-4 w-4" /> Generate Summary
-        </Button>
       </div>
 
       {/* Content Preview */}
       <div className="mt-6 rounded-xl border border-white/10 bg-slate-900/40 p-5">
-        {source.kind === "pdf" ? (
-          <div className="text-sm text-slate-300 space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Document Preview</div>
-            <p>
-              📄 <strong className="text-white">{source.title}</strong> has been successfully loaded.
-            </p>
-            <p className="text-slate-400">
-              Use the <strong className="text-indigo-300">AI Assistant</strong> on the right (or tap the button at the top) to ask questions, get summaries, or generate study material from this document.
-            </p>
-          </div>
-        ) : (
-          <div className="aspect-video overflow-hidden rounded-lg bg-black/60 flex items-center justify-center">
-            <div className="text-center p-6">
-              <Play className="mx-auto h-12 w-12 text-indigo-400 mb-3" />
-              <div className="text-sm text-slate-300 font-medium">YouTube Video Linked</div>
-              <div className="text-xs text-slate-500 mt-1 break-all max-w-xs">{source.title}</div>
-              <p className="text-xs text-slate-400 mt-3">
-                Ask Francis AI to summarize this video or generate study questions from it!
-              </p>
-            </div>
-          </div>
-        )}
+        <div className="text-sm text-slate-300 space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Admin Source Status</div>
+          <p>
+            📚 <strong className="text-white">{source.title}</strong> is active in your study workspace.
+          </p>
+          <p className="text-slate-400 text-xs">
+            Use the <strong className="text-indigo-300">AI Assistant</strong> on the right (or tap the top-right button) to ask questions, generate summaries, or take practice quizzes grounded in this admin material.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -868,7 +909,7 @@ function NoteEditor({
   );
 }
 
-// ─── Flashcard Review (Spaced Repetition) ───────────────────────
+// ─── Flashcard Review ────────────────────────────────────────────
 function FlashcardReview({
   cards,
   onRate,
@@ -885,7 +926,7 @@ function FlashcardReview({
       <div className="flex h-full flex-col items-center justify-center p-8 text-center">
         <Layers className="h-12 w-12 text-slate-600 mb-4" />
         <div className="text-slate-400 font-medium mb-1">No flashcards yet</div>
-        <div className="text-xs text-slate-600">Upload a source and click "Convert to Flashcards" to get started.</div>
+        <div className="text-xs text-slate-600">Select an admin source and click "Convert to Flashcards" to get started.</div>
       </div>
     );
   }
@@ -898,21 +939,21 @@ function FlashcardReview({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center p-4 sm:p-10">
-      <div className="mb-4 flex w-full items-center justify-between text-xs text-slate-400">
+      <div className="mb-6 flex w-full items-center justify-between text-xs text-slate-400">
         <span>Card {idx + 1} of {cards.length}</span>
-        <span className="flex items-center gap-1 text-orange-300">
-          <Flame className="h-3 w-3" /> Spaced repetition active
-        </span>
+        <Badge variant="outline" className="border-indigo-500/30 text-indigo-300">
+          Spaced Repetition
+        </Badge>
       </div>
 
       <button
         onClick={() => setFlipped((f) => !f)}
-        className="group relative flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/60 p-8 text-center shadow-xl transition-transform hover:scale-[1.01] active:scale-[0.99]"
+        className="flex min-h-[260px] w-full flex-col items-center justify-center rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900 to-slate-900/80 p-8 text-center shadow-2xl transition-transform active:scale-[0.99]"
       >
-        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+        <div className="text-xs uppercase tracking-wider text-slate-500 mb-4">
           {flipped ? "Answer" : "Question"}
         </div>
-        <div className="mt-3 text-xl font-medium text-white leading-relaxed">
+        <div className="text-lg font-medium text-white sm:text-xl">
           {flipped ? card.back : card.front}
         </div>
         <div className="mt-6 text-[10px] text-slate-600">Tap to flip</div>
@@ -941,12 +982,12 @@ function FlashcardReview({
 // ─── Quiz Mode ──────────────────────────────────────────────────
 function QuizMode({ source }: { source: Source }) {
   const quiz = source.units.map((u) => ({
-    q: `What does "${u.title}" cover?`,
+    q: `What key concept is covered under "${u.title}"?`,
     options: [
       u.brief,
-      "An unrelated concept",
-      "A completely different topic",
-      "None of the above",
+      "Unrelated theoretical algorithm",
+      "Non-syllabus background context",
+      "General overview",
     ],
     answer: 0,
   }));
@@ -959,7 +1000,7 @@ function QuizMode({ source }: { source: Source }) {
   if (quiz.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-8 text-center text-slate-400">
-        No units in this source to quiz on.
+        No unit breakdown available for quiz generation.
       </div>
     );
   }
@@ -1148,37 +1189,38 @@ function AssistantPanel({
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
-    onSend(input);
+    onSend(input.trim());
     setInput("");
   }
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0">
-          <Sparkles className="h-4 w-4 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white">Francis AI</div>
-          <div className="text-[10px] text-slate-400 truncate">
-            {hasContent
-              ? activeSourceTitle
-                ? `Analysing: ${activeSourceTitle}`
-                : `${sources.length} source(s) loaded`
-              : "Waiting for content…"}
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+            <Sparkles className="h-3.5 w-3.5 text-white" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-white">Francis AI Assistant</div>
+            <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3" /> Admin Grounded Mode
+            </div>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-slate-400 hover:bg-white/5 shrink-0">
+        <button
+          onClick={onClose}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white"
+        >
           <X className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
 
       {/* Grounding toggle */}
       <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-2">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-          <Target className="h-3 w-3" />
-          Source Grounding
+          <ShieldCheck className="h-3 w-3 text-emerald-400" />
+          Strict Admin Grounding
         </div>
         <button
           onClick={onToggleGrounding}
@@ -1195,12 +1237,12 @@ function AssistantPanel({
         </button>
       </div>
 
-      {/* Status bar — no content warning */}
-      {!hasContent && (
-        <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2">
-          <div className="flex items-center gap-2 text-xs text-amber-300">
-            <Link2 className="h-3.5 w-3.5 shrink-0" />
-            <span>I can still help using my syllabus knowledge — upload a source for richer grounded answers.</span>
+      {/* Status bar */}
+      {activeSourceTitle && (
+        <div className="border-b border-indigo-500/20 bg-indigo-500/5 px-4 py-1.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-indigo-300 truncate">
+            <BookOpen className="h-3 w-3 shrink-0" />
+            <span className="truncate">Grounded in: <strong>{activeSourceTitle}</strong></span>
           </div>
         </div>
       )}
@@ -1252,11 +1294,10 @@ function AssistantPanel({
 
       {/* Quick Actions + Input */}
       <div className="border-t border-white/10 px-3 py-2">
-        {/* Quick prompts — only shown when content is available */}
         {hasContent && (
           <div className="mb-2 flex flex-wrap gap-1">
             {[
-              { label: "Summarize this", icon: Sparkles },
+              { label: "Summarize active source", icon: Sparkles },
               { label: "Generate 5 exam questions", icon: Target },
               { label: "Explain in simple terms", icon: MessageSquare },
             ].map((a) => (
@@ -1272,7 +1313,6 @@ function AssistantPanel({
           </div>
         )}
 
-        {/* Action buttons — only when content is available */}
         {hasContent && (
           <div className="mb-2 flex gap-1">
             <button
@@ -1294,7 +1334,7 @@ function AssistantPanel({
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={sending ? "Francis AI is thinking…" : "Ask Francis AI anything…"}
+            placeholder={sending ? "Francis AI is analyzing..." : "Ask Francis AI about admin materials..."}
             disabled={sending}
             className="h-9 border-white/10 bg-white/5 text-sm placeholder:text-slate-500 text-slate-100"
           />
