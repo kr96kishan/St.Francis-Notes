@@ -125,9 +125,12 @@ function WorkspacePage() {
     {
       id: "m0",
       role: "assistant",
-      text: "👋 Hi! I'm Francis AI — your personal study assistant.\n\nUpload a PDF or add a YouTube link from the panel on the left to get started. I'll read the content and help you study smarter! 📚",
+      text: "👋 Hi! I'm **Francis AI** — your personal study assistant for St. Francis Notes.\n\nI know the full BCA syllabus, and I can also **read any PDF or YouTube video** you drop in the left panel. Try:\n\n• *\"Summarize Unit 1\"*\n• *\"Generate 5 exam questions from this PDF\"*\n• *\"Explain OOP inheritance with an example\"*\n\nLet's ace this. 📚",
     },
   ]);
+  const [sending, setSending] = useState(false);
+  const [groundingOnly, setGroundingOnly] = useState(true);
+  const ask = useServerFn(askAssistant);
 
   const [uploadUrl, setUploadUrl] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
