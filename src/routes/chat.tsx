@@ -1121,6 +1121,9 @@ function AssistantPanel({
   onConvertToFlashcards,
   onCreateQuiz,
   activeSourceTitle,
+  sending,
+  groundingOnly,
+  onToggleGrounding,
 }: {
   sources: Source[];
   messages: ChatMsg[];
@@ -1130,6 +1133,9 @@ function AssistantPanel({
   onConvertToFlashcards: () => void;
   onCreateQuiz: () => void;
   activeSourceTitle: string | null;
+  sending: boolean;
+  groundingOnly: boolean;
+  onToggleGrounding: () => void;
 }) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
