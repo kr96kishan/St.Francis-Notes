@@ -64,6 +64,10 @@ type Source = {
   summary: string;
   tags: string[];
   units: { id: string; title: string; brief: string }[];
+  /** For PDFs: base64 data URL. Optional; used for AI multimodal input. */
+  dataUrl?: string;
+  /** For YouTube/local video: source URL. */
+  url?: string;
 };
 type Note = { id: string; title: string; body: string };
 type Flashcard = { id: string; front: string; back: string; ease: number; due: number };
