@@ -78,34 +78,6 @@ type ChatMsg = {
   citations?: string[];
 };
 
-// ─── AI Reply (offline stub — replace with real API when key is added) ─────────
-function offlineReply(prompt: string, sources: Source[]): ChatMsg {
-  const hasContent = sources.length > 0;
-  const p = prompt.toLowerCase();
-  let text = "";
-
-  if (!hasContent) {
-    text =
-      "📂 No sources uploaded yet! Please upload a PDF or add a YouTube URL from the left panel first — I'll analyse it and answer questions based on that content.";
-  } else if (p.includes("summar")) {
-    const s = sources[0];
-    text = `**Summary of "${s.title}":**\n\n${s.summary}\n\n**Key Tags:** ${s.tags.join(", ")}`;
-  } else if (p.includes("flashcard") || p.includes("flash")) {
-    text =
-      "Sure! Click the **→ Flashcards** button below to instantly convert the active source into a study deck. 🃏";
-  } else if (p.includes("exam") || p.includes("question") || p.includes("mcq")) {
-    text =
-      "**Sample Exam Questions:**\n\n1. Define the core concept covered in Unit 1.\n2. Compare and contrast the two main approaches discussed.\n3. Write pseudocode for the algorithm explained in the lecture.\n4. What are the real-world applications mentioned in the source?\n5. Explain the significance of the key terms highlighted.";
-  } else if (p.includes("explain")) {
-    text =
-      "Great question! Based on the uploaded source, let me break this down step by step. Think of it as a recipe — each unit builds on the previous one. 🧠 Would you like me to go deeper on any specific part?";
-  } else {
-    const s = sources[0];
-    text = `Based on "${s.title}", here's what I found:\n\n${s.summary}\n\nFeel free to ask me to summarize, generate exam questions, or explain any concept from your uploaded sources!`;
-  }
-
-  return { id: crypto.randomUUID(), role: "assistant", text };
-}
 
 // ─── Main ───────────────────────────────────────────────────────
 function WorkspacePage() {
