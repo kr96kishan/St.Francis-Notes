@@ -207,17 +207,17 @@ export function UploadModal({
         });
 
         try {
-          toast.loading("Indexing video for Francis AI...", { id: "video-index" });
+          toast.loading("Indexing video for Copo...", { id: "video-index" });
           await ingestYouTubeUrl(ytUrl, {
             semester: selectedSem.title,
             subject: selectedSub.title,
             source_type: "youtube_video",
             source_title: title,
           });
-          toast.success(`✓ Indexed for Francis AI: "${title}"`, { id: "video-index" });
+          toast.success(`✓ Indexed for Copo: "${title}"`, { id: "video-index" });
         } catch (err) {
           console.error("YouTube video ingestion error:", err);
-          toast.error("Video uploaded but indexing failed. Francis AI may not detect it.", { id: "video-index" });
+          toast.error("Video uploaded but indexing failed. Copo may not detect it.", { id: "video-index" });
         }
 
         triggerSuccessScreen();
@@ -253,17 +253,17 @@ export function UploadModal({
         });
 
         try {
-          toast.loading("Indexing video for Francis AI...", { id: "video-index" });
+          toast.loading("Indexing video for Copo...", { id: "video-index" });
           await ingestLocalVideoFile(selectedFile, {
             semester: selectedSem.title,
             subject: selectedSub.title,
             source_type: "local_video",
             source_title: title,
           });
-          toast.success(`✓ Indexed for Francis AI: "${title}"`, { id: "video-index" });
+          toast.success(`✓ Indexed for Copo: "${title}"`, { id: "video-index" });
         } catch (err) {
           console.error("Local video ingestion error:", err);
-          toast.error("Video uploaded but indexing failed. Francis AI may not detect it.", { id: "video-index" });
+          toast.error("Video uploaded but indexing failed. Copo may not detect it.", { id: "video-index" });
         }
 
         triggerSuccessScreen();

@@ -180,7 +180,7 @@ export function getVideoTranscripts(semester?: string, subject?: string): NoteEm
 
 /**
  * Check what materials are currently indexed for a given semester + subject.
- * Returns counts, unique video titles & source types so Francis AI can confirm detection.
+ * Returns counts, unique video titles & source types so Copo can confirm detection.
  */
 export function checkUploadedMaterials(
   semester?: string,

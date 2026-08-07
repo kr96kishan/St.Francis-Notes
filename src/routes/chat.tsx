@@ -48,13 +48,13 @@ import rehypeKatex from "rehype-katex";
 export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
-      { title: "Francis AI Tutor — BCU BCA Guided Assistant" },
+      { title: "Copo Tutor — BCU BCA Guided Assistant" },
       {
         name: "description",
         content:
-          "100% Guided Choice-Based Francis AI Tutor for Bengaluru City University BCA students with dynamic file detection.",
+          "100% Guided Choice-Based Copo Tutor for Bengaluru City University BCA students with dynamic file detection.",
       },
-      { property: "og:title", content: "Francis AI Tutor — BCU BCA Guided Assistant" },
+      { property: "og:title", content: "Copo Tutor — BCU BCA Guided Assistant" },
       { property: "og:description", content: "Interactive choice-based BCA study companion." },
       { name: "twitter:card", content: "summary" },
     ],
@@ -137,7 +137,7 @@ const STANDARD_ACTIONS = [
 const INITIAL_MESSAGE: ChatMsg = {
   id: "init",
   role: "assistant",
-  text: "Hello! I am **Francis AI** 👋 — your 100% Guided Study Assistant for Bengaluru City University (BCU) BCA.\n\nPlease select your **Semester** below to get started:",
+  text: "Hello! I am **Copo** 👋 — your 100% Guided Study Assistant for Bengaluru City University (BCU) BCA.\n\nPlease select your **Semester** below to get started:",
 };
 
 // ─── Utility helpers ─────────────────────────────────────────────────────────
@@ -537,7 +537,7 @@ function TutorPage() {
               <img src="/college-logo.png" alt="St. Francis College Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <div className="text-sm font-semibold">Francis AI</div>
+              <div className="text-sm font-semibold">Copo</div>
               <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Guided Mode Active
@@ -664,7 +664,7 @@ function TutorPage() {
               </Button>
               <div>
                 <h1 className="text-base md:text-xl font-semibold tracking-tight flex items-center gap-2">
-                  Francis AI Assistant
+                  Copo Assistant
                   <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-[10px]">
                     Guided Mode
                   </Badge>
@@ -709,7 +709,7 @@ function TutorPage() {
             {sending && (
               <div className="flex items-center gap-3 text-sm text-indigo-300 bg-indigo-500/10 border border-indigo-400/20 px-4 py-3 rounded-2xl animate-pulse">
                 <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-                Francis AI is generating your detailed answer...
+                Copo is generating your detailed answer...
               </div>
             )}
 

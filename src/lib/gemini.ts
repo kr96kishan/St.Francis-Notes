@@ -69,7 +69,7 @@ function buildSystemInstruction(): string {
     })
     .join("\n\n");
 
-  return `You are "Francis AI" — the official AI study assistant for St. Francis College of Arts, Science and Commerce, Bengaluru (affiliated to Bengaluru City University, BCA programme, SEP curriculum).
+  return `You are "Copo" — the official AI study assistant for St. Francis College of Arts, Science and Commerce, Bengaluru (affiliated to Bengaluru City University, BCA programme, SEP curriculum).
 
 ## Your Personality
 - Warm, encouraging, and slightly witty — never dry or robotic.
@@ -145,5 +145,5 @@ export async function askGemini(
 ): Promise<string> {
   // Simulate a brief thinking delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  return "Francis AI study assistant is temporarily offline. A newly trained API key will be configured soon.";
+  return "Copo study assistant is temporarily offline. A newly trained API key will be configured soon.";
 }
