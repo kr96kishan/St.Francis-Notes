@@ -48,7 +48,7 @@ function Index() {
           <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" />
           <svg
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.14]"
+            className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.06]"
           >
             <defs>
               <pattern id="circuit" width="44" height="44" patternUnits="userSpaceOnUse">
