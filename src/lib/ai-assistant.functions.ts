@@ -40,7 +40,7 @@ export interface TutorChatResponse {
   error?: string;
 }
 
-if (typeof process !== "undefined" && process.env.NODE_ENV !== "production") {
+if (typeof process !== "undefined") {
   // Prevent local Windows network proxy/antivirus SSL inspection certificate errors from failing Node fetch
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
