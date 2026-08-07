@@ -64,17 +64,17 @@ function useBreadcrumbs(): Crumb[] {
 function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+    <Sidebar collapsible="icon" className="border-r border-border/50 [&>[data-sidebar=sidebar]]:glass-panel [&>[data-sidebar=sidebar]]:backdrop-blur-xl">
+      <SidebarHeader className="border-b border-sidebar-border/60 px-4 py-4">
         <CollegeLogo />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.18em]">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/"}>
+              <SidebarMenuItem className="nav-indicator" data-active={pathname === "/"}>
+                <SidebarMenuButton asChild isActive={pathname === "/"} className="rounded-lg transition-colors">
                   <Link to="/">
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Dashboard</span>
@@ -85,22 +85,22 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Semesters</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.18em]">Semesters</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {syllabus.map((sem) => (
-                <SidebarMenuItem key={sem.id}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(`/semester/${sem.id}`)}
-                  >
-                    <Link to="/semester/$semId" params={{ semId: sem.id }}>
-                      <BookOpen className="h-4 w-4" />
-                      <span>{sem.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {syllabus.map((sem) => {
+                const active = pathname.startsWith(`/semester/${sem.id}`);
+                return (
+                  <SidebarMenuItem key={sem.id} className="nav-indicator" data-active={active}>
+                    <SidebarMenuButton asChild isActive={active} className="rounded-lg transition-colors">
+                      <Link to="/semester/$semId" params={{ semId: sem.id }}>
+                        <BookOpen className="h-4 w-4" />
+                        <span>{sem.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -143,14 +143,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full flex-col bg-background">
+      <div className="aurora-bg flex min-h-screen w-full flex-col bg-background">
         {/* Brand gradient accent line */}
         <div className="brand-gradient-line h-[2px] w-full shrink-0" />
 
         <div className="flex flex-1">
           <AppSidebar />
           <div className="flex flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-3 backdrop-blur sm:h-16 sm:gap-4 sm:px-6">
+            <header className="glass-panel sticky top-0 z-30 flex h-14 items-center gap-3 rounded-none border-x-0 border-t-0 px-3 backdrop-blur-xl sm:h-16 sm:gap-4 sm:px-6">
               <SidebarTrigger />
               <Breadcrumb className="flex-1 overflow-hidden">
                 <BreadcrumbList className="flex-nowrap">
@@ -179,14 +179,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Breadcrumb>
               {/* Desktop Header Actions */}
               <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
+                <div className="glass-soft flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-foreground/80">
                   {role === "admin" ? (
-                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                   ) : (
-                    <User className="h-3.5 w-3.5" />
+                    <User className="h-3.5 w-3.5 text-primary" />
                   )}
                   <span className="capitalize">{name ? `${name} (${role})` : role}</span>
                 </div>
+
                 
                 {role === "admin" && (
                   <>
@@ -208,10 +209,41 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {theme === "light" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
                 </Button>
 
-                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/chat" })} className="gap-2 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Copo (Available Soon)</span>
-                </Button>
+                <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">
+                  <span className="radar-dot inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <span>⚡ Copo AI • Next-Gen Study Companion</span>
+                </div>
+
+                <div className="group relative">
+                  <span className="aura-pulse pointer-events-none absolute -inset-1 rounded-xl bg-gradient-to-r from-cyan-400/30 to-indigo-500/30 blur-md" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate({ to: "/chat" })}
+                    className="glow-border relative gap-2 rounded-lg border-transparent bg-card/70 text-foreground backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 hover:bg-card/90 hover:text-foreground"
+                  >
+                    <Sparkles className="h-4 w-4 text-cyan-400" />
+                    <span>Copo (Available Soon)</span>
+                  </Button>
+
+                  <div className="pointer-events-none absolute right-0 top-full z-50 mt-3 w-72 origin-top-right scale-95 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
+                    <div className="glass-panel rounded-2xl p-4 text-left">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Sparkles className="h-4 w-4 text-cyan-400" /> Copo AI Tutor
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                        Your BCU BCA study companion — coming soon with:
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        <li>• Syllabus-grounded answers with citations</li>
+                        <li>• Instant chapter & unit summaries</li>
+                        <li>• Exam questions and pop quizzes</li>
+                        <li>• Notes & lecture-video understanding</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
                 
                 <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
                   <LogOut className="h-4 w-4" />
