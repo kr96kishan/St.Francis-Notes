@@ -22,6 +22,7 @@ import {
   isVideoFile,
   fileToDataUrl
 } from "@/lib/content-store";
+import { ingestYouTubeUrl, ingestLocalVideoFile } from "@/lib/ingestion";
 
 interface UploadModalProps {
   open: boolean;
@@ -196,12 +197,29 @@ export function UploadModal({
           return;
         }
 
+        const title = materialTitle.trim() || `YouTube Lecture (${videoId})`;
+
         addContent(topicKey, {
           type: "youtube",
-          name: materialTitle.trim() || "Video Lecture",
+          name: title,
           url: ytUrl,
           uploadedBy: currentUserName || "Admin",
         });
+
+        try {
+          toast.loading("Indexing video for Francis AI...", { id: "video-index" });
+          await ingestYouTubeUrl(ytUrl, {
+            semester: selectedSem.title,
+            subject: selectedSub.title,
+            source_type: "youtube_video",
+            source_title: title,
+          });
+          toast.success(`✓ Indexed for Francis AI: "${title}"`, { id: "video-index" });
+        } catch (err) {
+          console.error("YouTube video ingestion error:", err);
+          toast.error("Video uploaded but indexing failed. Francis AI may not detect it.", { id: "video-index" });
+        }
+
         triggerSuccessScreen();
       } else {
         // Local Video File Upload
@@ -221,15 +239,33 @@ export function UploadModal({
             console.error(e);
           }
         }
+
+        const title = materialTitle.trim() || selectedFile.name;
+
         addContent(topicKey, {
           type: "video",
-          name: materialTitle.trim() || selectedFile.name,
+          name: title,
           size: selectedFile.size,
           mime: selectedFile.type,
           fileBlob: selectedFile,
           url: vidDataUrl,
           uploadedBy: currentUserName || "Admin",
         });
+
+        try {
+          toast.loading("Indexing video for Francis AI...", { id: "video-index" });
+          await ingestLocalVideoFile(selectedFile, {
+            semester: selectedSem.title,
+            subject: selectedSub.title,
+            source_type: "local_video",
+            source_title: title,
+          });
+          toast.success(`✓ Indexed for Francis AI: "${title}"`, { id: "video-index" });
+        } catch (err) {
+          console.error("Local video ingestion error:", err);
+          toast.error("Video uploaded but indexing failed. Francis AI may not detect it.", { id: "video-index" });
+        }
+
         triggerSuccessScreen();
       }
     } else {

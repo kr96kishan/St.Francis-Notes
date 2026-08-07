@@ -332,3 +332,17 @@
   right: 10%;
   animation-delay: -5s;
 }
+
+/* Hide Lovable badge / symbol overlays */
+[id*="lovable"],
+[class*="lovable-badge"],
+[id*="lovable-badge"],
+iframe[src*="lovable"],
+a[href*="lovable.dev"],
+#lovable-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
