@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full flex-col bg-background">
+      <div className="aurora-bg flex min-h-screen w-full flex-col bg-background">
         {/* Brand gradient accent line */}
         <div className="brand-gradient-line h-[2px] w-full shrink-0" />
 
