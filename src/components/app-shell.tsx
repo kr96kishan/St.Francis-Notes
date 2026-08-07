@@ -64,17 +64,17 @@ function useBreadcrumbs(): Crumb[] {
 function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+    <Sidebar collapsible="icon" className="border-r border-border/50 [&>[data-sidebar=sidebar]]:glass-panel [&>[data-sidebar=sidebar]]:backdrop-blur-xl">
+      <SidebarHeader className="border-b border-sidebar-border/60 px-4 py-4">
         <CollegeLogo />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.18em]">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/"}>
+              <SidebarMenuItem className="nav-indicator" data-active={pathname === "/"}>
+                <SidebarMenuButton asChild isActive={pathname === "/"} className="rounded-lg transition-colors">
                   <Link to="/">
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Dashboard</span>
@@ -85,22 +85,22 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Semesters</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.18em]">Semesters</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {syllabus.map((sem) => (
-                <SidebarMenuItem key={sem.id}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(`/semester/${sem.id}`)}
-                  >
-                    <Link to="/semester/$semId" params={{ semId: sem.id }}>
-                      <BookOpen className="h-4 w-4" />
-                      <span>{sem.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {syllabus.map((sem) => {
+                const active = pathname.startsWith(`/semester/${sem.id}`);
+                return (
+                  <SidebarMenuItem key={sem.id} className="nav-indicator" data-active={active}>
+                    <SidebarMenuButton asChild isActive={active} className="rounded-lg transition-colors">
+                      <Link to="/semester/$semId" params={{ semId: sem.id }}>
+                        <BookOpen className="h-4 w-4" />
+                        <span>{sem.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
