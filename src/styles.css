@@ -346,3 +346,122 @@ a[href*="lovable.dev"],
   pointer-events: none !important;
 }
 
+
+/* ─── Premium redesign: aurora, glass, glow ──────────────────────────────── */
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Aurora mesh background */
+@utility aurora-bg {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 40rem at 12% -10%, oklch(0.65 0.16 220 / 0.16), transparent 60%),
+      radial-gradient(50rem 35rem at 88% 0%, oklch(0.55 0.2 285 / 0.18), transparent 60%),
+      radial-gradient(45rem 35rem at 50% 110%, oklch(0.6 0.14 200 / 0.12), transparent 60%);
+  }
+}
+
+/* Frosted glass panel */
+@utility glass-panel {
+  background: color-mix(in oklab, var(--card) 62%, transparent);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, white 12%, transparent) inset,
+    0 10px 30px -12px oklch(0 0 0 / 0.35),
+    0 2px 8px -4px oklch(0 0 0 / 0.15);
+}
+
+@utility glass-soft {
+  background: color-mix(in oklab, var(--card) 45%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+
+/* Animated gradient border (Copo button) */
+@keyframes borderSpin {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@utility glow-border {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(90deg,
+      oklch(0.75 0.15 200),
+      oklch(0.6 0.2 275),
+      oklch(0.7 0.16 195),
+      oklch(0.6 0.2 275),
+      oklch(0.75 0.15 200));
+    background-size: 200% 100%;
+    animation: borderSpin 4s linear infinite;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+@keyframes radarPing {
+  0% { box-shadow: 0 0 0 0 oklch(0.72 0.18 155 / 0.55); }
+  70% { box-shadow: 0 0 0 7px oklch(0.72 0.18 155 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.72 0.18 155 / 0); }
+}
+
+@utility radar-dot {
+  animation: radarPing 2s ease-out infinite;
+}
+
+@keyframes auraPulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.12); }
+}
+
+@utility aura-pulse {
+  animation: auraPulse 3s ease-in-out infinite;
+}
+
+/* Neon active indicator pill for sidebar */
+@utility nav-indicator {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    left: -0.35rem;
+    top: 50%;
+    height: 60%;
+    width: 3px;
+    transform: translateY(-50%) scaleY(0);
+    transform-origin: center;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, oklch(0.78 0.16 200), oklch(0.62 0.2 280));
+    box-shadow: 0 0 10px oklch(0.7 0.18 240 / 0.8);
+    transition: transform 0.2s ease;
+  }
+  &[data-active="true"]::before { transform: translateY(-50%) scaleY(1); }
+}
+
+/* Semester card accent glows */
+@utility card-glow {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
