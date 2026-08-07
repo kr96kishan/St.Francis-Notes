@@ -179,14 +179,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Breadcrumb>
               {/* Desktop Header Actions */}
               <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
+                <div className="glass-soft flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-foreground/80">
                   {role === "admin" ? (
-                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                   ) : (
-                    <User className="h-3.5 w-3.5" />
+                    <User className="h-3.5 w-3.5 text-primary" />
                   )}
                   <span className="capitalize">{name ? `${name} (${role})` : role}</span>
                 </div>
+
                 
                 {role === "admin" && (
                   <>
