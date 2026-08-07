@@ -421,14 +421,4 @@ ${detectionHint ? "→ Follow the DETECTION QUERY DETECTED instruction block abo
         error: userFriendlyError,
       };
     }
-  });cludes("429")) {
-        userFriendlyError =
-          "API quota exceeded. Please check your Gemini API plan or try again in a few moments.";
-      }
-      return {
-        ok: false,
-        answer: "",
-        error: userFriendlyError,
-      };
-    }
   });
