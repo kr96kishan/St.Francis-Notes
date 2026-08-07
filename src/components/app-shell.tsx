@@ -210,7 +210,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
                 <Button variant="outline" size="sm" onClick={() => navigate({ to: "/chat" })} className="gap-2 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary">
                   <Sparkles className="h-4 w-4" />
-                  <span>AI Assistant</span>
+                  <span>Copo (Available Soon)</span>
                 </Button>
                 
                 <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
@@ -250,8 +250,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                       </>
                     )}
                     <DropdownMenuItem onClick={() => navigate({ to: "/chat" })} className="gap-2 cursor-pointer">
-                      <Sparkles className="h-4 w-4 text-muted-foreground" />
-                      <span>AI Assistant</span>
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span>Copo (Available Soon)</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={logout} className="gap-2 cursor-pointer">
                       <LogOut className="h-4 w-4 text-muted-foreground" />
