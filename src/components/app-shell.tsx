@@ -150,7 +150,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex flex-1">
           <AppSidebar />
           <div className="flex flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-3 backdrop-blur sm:h-16 sm:gap-4 sm:px-6">
+            <header className="glass-panel sticky top-0 z-30 flex h-14 items-center gap-3 rounded-none border-x-0 border-t-0 px-3 backdrop-blur-xl sm:h-16 sm:gap-4 sm:px-6">
               <SidebarTrigger />
               <Breadcrumb className="flex-1 overflow-hidden">
                 <BreadcrumbList className="flex-nowrap">
