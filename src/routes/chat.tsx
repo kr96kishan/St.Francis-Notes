@@ -77,25 +77,8 @@ function CopoComingSoonPage() {
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="max-w-md w-full text-center space-y-6 relative z-10 my-auto">
-          {/* Logo & Icon Badge */}
-          <div className="relative inline-block">
-            <div className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-3xl bg-slate-900/90 border border-white/15 p-3.5 shadow-2xl backdrop-blur flex items-center justify-center group hover:scale-105 transition-transform duration-300">
-              <img
-                src="/college-logo.png"
-                alt="St. Francis College Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-1.5 rounded-full border-2 border-slate-950 shadow-lg">
-              <Clock className="w-4 h-4 animate-spin-slow" />
-            </div>
-          </div>
-
           {/* Titles */}
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Copo 2.0
-            </div>
             <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">
               Copo is Available Soon!
             </h2>
