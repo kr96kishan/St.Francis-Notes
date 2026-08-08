@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Sparkles, Clock, Home, BookOpen, Layers, Lock, ShieldCheck, Zap } from "lucide-react";
+import { ArrowLeft, Sparkles, Clock, Home, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -76,7 +76,7 @@ function CopoComingSoonPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="max-w-2xl w-full text-center space-y-6 relative z-10 my-auto">
+        <div className="max-w-md w-full text-center space-y-6 relative z-10 my-auto">
           {/* Logo & Icon Badge */}
           <div className="relative inline-block">
             <div className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-3xl bg-slate-900/90 border border-white/15 p-3.5 shadow-2xl backdrop-blur flex items-center justify-center group hover:scale-105 transition-transform duration-300">
@@ -94,51 +94,15 @@ function CopoComingSoonPage() {
           {/* Titles */}
           <div className="space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Copo 2.0 Upgrade
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Copo 2.0
             </div>
             <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">
               Copo is Available Soon!
             </h2>
-            <p className="text-sm md:text-base text-slate-300 max-w-lg mx-auto leading-relaxed">
-              We are temporarily pausing Copo while we perform scheduled upgrades to bring you faster responses, enhanced syllabus grounding, and offline study tools.
-            </p>
-          </div>
-
-          {/* Feature Preview Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-left">
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-2 backdrop-blur">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
-                <Zap className="w-4 h-4" />
-              </div>
-              <h3 className="text-xs font-semibold text-white">Groq Speed Engine</h3>
-              <p className="text-[11px] text-slate-400 leading-snug">
-                Sub-second response generation for instant BCA exam summaries.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-2 backdrop-blur">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <h3 className="text-xs font-semibold text-white">BCU SEP Syllabus</h3>
-              <p className="text-[11px] text-slate-400 leading-snug">
-                100% grounded in Bengaluru City University BCA curriculum.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-2 backdrop-blur">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center">
-                <Layers className="w-4 h-4" />
-              </div>
-              <h3 className="text-xs font-semibold text-white">Notes & Video RAG</h3>
-              <p className="text-[11px] text-slate-400 leading-snug">
-                Deep document text extraction and YouTube timestamp analysis.
-              </p>
-            </div>
           </div>
 
           {/* Actions */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button
               onClick={() => navigate({ to: "/" })}
               className="w-full sm:w-auto px-6 py-2.5 h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-600/25 transition-all"
@@ -154,7 +118,7 @@ function CopoComingSoonPage() {
       <div className="border-t border-white/10 bg-slate-900/80 backdrop-blur py-3 px-4 shrink-0">
         <div className="max-w-2xl mx-auto flex items-center justify-center gap-2 text-xs text-slate-400 bg-slate-800/80 border border-white/10 rounded-xl py-2 px-4 text-center shadow-inner">
           <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span>Copo Assistant is temporarily offline for scheduled upgrades — Available Soon!</span>
+          <span>Copo Assistant is temporarily offline — Available Soon!</span>
         </div>
       </div>
     </div>
