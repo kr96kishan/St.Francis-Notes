@@ -209,10 +209,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {theme === "light" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
                 </Button>
 
-                <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">
-                  <span className="radar-dot inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <span>⚡ Copo AI • Next-Gen Study Companion</span>
-                </div>
+
 
                 <div className="group relative">
                   <span className="aura-pulse pointer-events-none absolute -inset-1 rounded-xl bg-gradient-to-r from-cyan-400/30 to-indigo-500/30 blur-md" />
