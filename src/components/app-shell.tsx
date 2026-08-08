@@ -220,23 +220,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                     className="glow-border relative gap-2 rounded-lg border-transparent bg-card/70 text-foreground backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 hover:bg-card/90 hover:text-foreground"
                   >
                     <Sparkles className="h-4 w-4 text-cyan-400" />
-                    <span>Copo (Available Soon)</span>
+                    <span>Copo</span>
                   </Button>
 
-                  <div className="pointer-events-none absolute right-0 top-full z-50 mt-3 w-72 origin-top-right scale-95 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
+                  <div className="pointer-events-none absolute right-0 top-full z-50 mt-3 w-64 origin-top-right scale-95 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
                     <div className="glass-panel rounded-2xl p-4 text-left">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                        <Sparkles className="h-4 w-4 text-cyan-400" /> Copo AI Tutor
+                        <Sparkles className="h-4 w-4 text-cyan-400" /> Copo
                       </div>
                       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                        Your BCU BCA study companion — coming soon with:
+                        Your BCU BCA study companion — Available Soon
                       </p>
-                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                        <li>• Syllabus-grounded answers with citations</li>
-                        <li>• Instant chapter & unit summaries</li>
-                        <li>• Exam questions and pop quizzes</li>
-                        <li>• Notes & lecture-video understanding</li>
-                      </ul>
                     </div>
                   </div>
                 </div>
@@ -280,7 +274,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     )}
                     <DropdownMenuItem onClick={() => navigate({ to: "/chat" })} className="gap-2 cursor-pointer">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      <span>Copo (Available Soon)</span>
+                      <span>Copo</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={logout} className="gap-2 cursor-pointer">
                       <LogOut className="h-4 w-4 text-muted-foreground" />
