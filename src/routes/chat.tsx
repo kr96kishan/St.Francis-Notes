@@ -82,6 +82,9 @@ function CopoComingSoonPage() {
             <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white">
               Copo is Available Soon!
             </h2>
+            <p className="text-sm md:text-base text-slate-400 font-medium">
+              Your AI Study Companion for BCU BCA
+            </p>
           </div>
 
           {/* Actions */}
