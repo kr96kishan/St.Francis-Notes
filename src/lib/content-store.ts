@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
+import { syncMaterialToCloud, deleteMaterialFromCloud } from "./materials-cloud";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -342,6 +343,10 @@ export function useRemoveContent() {
       if (typeof window !== "undefined") {
         dbSet("contents", topicKey, filtered).catch(console.error);
       }
+    }
+
+    if (typeof window !== "undefined") {
+      void deleteMaterialFromCloud(itemId);
     }
 
     listeners.forEach((l) => l());
