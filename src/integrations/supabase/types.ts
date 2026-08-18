@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_materials: {
+        Row: {
+          chapter_id: string | null
+          created_at: string
+          id: string
+          mime: string | null
+          name: string
+          sem_id: string | null
+          subject_id: string | null
+          text_content: string | null
+          topic_id: string | null
+          topic_key: string
+          type: string
+          uploaded_by: string
+          url: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string
+          id?: string
+          mime?: string | null
+          name: string
+          sem_id?: string | null
+          subject_id?: string | null
+          text_content?: string | null
+          topic_id?: string | null
+          topic_key: string
+          type?: string
+          uploaded_by?: string
+          url?: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string
+          id?: string
+          mime?: string | null
+          name?: string
+          sem_id?: string | null
+          subject_id?: string | null
+          text_content?: string | null
+          topic_id?: string | null
+          topic_key?: string
+          type?: string
+          uploaded_by?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
