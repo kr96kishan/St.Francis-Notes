@@ -307,8 +307,20 @@ export function useAddContent() {
       // Save to IndexedDB
       if (typeof window !== "undefined") {
         dbSet("contents", topicKey, items).catch(console.error);
+        // Mirror to the cloud so Copo AI can read admin-uploaded material
+        void syncMaterialToCloud({
+          id: newItem.id,
+          topicKey,
+          type: newItem.type,
+          name: newItem.name,
+          url: newItem.url,
+          mime: newItem.mime,
+          uploadedBy: newItem.uploadedBy,
+          fileBlob: item.fileBlob,
+        });
       }
     },
+
     [],
   );
 }
