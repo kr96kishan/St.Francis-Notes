@@ -59,7 +59,7 @@ function buildSourceBlock(rows: MaterialRow[]): string {
 }
 
 export const askCopo = createServerFn({ method: "POST" })
-  .inputValidator((raw: unknown) => raw as CopoAskInput)
+  .validator((raw: unknown) => raw as CopoAskInput)
   .handler(async ({ data }): Promise<CopoAskResult> => {
     const { message, semId, subjectId, history = [] } = data;
 
